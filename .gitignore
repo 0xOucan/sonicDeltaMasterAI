@@ -16,3 +16,16 @@ build/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Wallet data
+wallet_data.txt
+
+# Typescript build files
+*.tsbuildinfo
+
+# TypeScript files
+*.ts
+
+# TypeScript files
+*.ts
+    
