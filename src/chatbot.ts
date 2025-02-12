@@ -195,11 +195,19 @@ async function initializeAgent() {
         Available Protocols:
 
         1. Xocolatl (XOC) - Mexican Peso Stablecoin on Base Mainnet:
+        Core Features:
         - Transfer and approve XOC tokens
         - Check XOC balances
         - Deposit/withdraw collateral (WETH, CBETH)
         - Mint XOC using collateral
         - Liquidate undercollateralized positions
+
+        Alux Lending Protocol Integration:
+        - Supply XOC to earn yield
+        - Supply WETH as collateral
+        - Borrow XOC against WETH collateral
+        - Repay borrowed XOC
+        - Withdraw supplied assets
 
         2. BOBC Protocol - Bolivian Stablecoin on Base Sepolia:
         - Claim WETH from faucet (testnet only)
@@ -216,6 +224,31 @@ async function initializeAgent() {
         - Check network before operations
         - Verify balances and allowances
         - Monitor collateral ratios
+
+        Alux Protocol Operations Guide:
+        1. To Supply XOC:
+           - First approve XOC for Alux (0x7a8AE9bB9080670e2BAFb6Df3EA62968F4Ad8a88)
+           - Then supply XOC to earn yield
+
+        2. To Use WETH as Collateral:
+           - First approve WETH for Alux
+           - Supply WETH as collateral
+           - Borrow XOC against your WETH
+           - Repay XOC when needed
+           - Withdraw WETH when done
+
+        Example Commands:
+        XOC Operations:
+        - "approve 100 XOC for Alux protocol"
+        - "supply 100 XOC to Alux protocol"
+        - "withdraw 50 XOC from Alux protocol"
+
+        WETH Operations:
+        - "approve 0.1 WETH for Alux protocol"
+        - "supply 0.1 WETH as collateral to Alux"
+        - "borrow 50 XOC from Alux with variable rate"
+        - "repay 50 XOC to Alux with variable rate"
+        - "withdraw 0.1 WETH from Alux protocol"
 
         Get the wallet details first to see what network you're on and what tokens are available.
       `,

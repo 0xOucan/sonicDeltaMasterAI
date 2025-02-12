@@ -37,3 +37,37 @@ export const LiquidateSchema = z
     account: z.string().describe("The account address to liquidate"),
   })
   .strip();
+
+export const SupplyXocSchema = z
+  .object({
+    amount: z.string().describe("The amount of XOC to supply"),
+    onBehalfOf: z.string().optional().describe("Optional: Address to supply on behalf of"),
+  })
+  .strip();
+
+export const WithdrawXocSchema = z
+  .object({
+    amount: z.string().describe("The amount of XOC to withdraw"),
+    to: z.string().optional().describe("Optional: Address to withdraw to"),
+  })
+  .strip();
+
+export const BorrowXocSchema = z
+  .object({
+    amount: z.string().describe("Amount of XOC to borrow"),
+    interestRateMode: z.enum(["1", "2"]).describe("Interest rate mode: 1 for Stable, 2 for Variable"),
+  })
+  .strip();
+
+export const RepayXocSchema = z
+  .object({
+    amount: z.string().describe("Amount of XOC to repay"),
+    interestRateMode: z.enum(["1", "2"]).describe("Interest rate mode: 1 for Stable, 2 for Variable"),
+  })
+  .strip();
+
+export const SupplyWethAluxSchema = z
+  .object({
+    amount: z.string().describe("Amount of WETH to supply as collateral"),
+  })
+  .strip();
