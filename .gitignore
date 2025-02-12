@@ -23,9 +23,9 @@ wallet_data.txt
 # Typescript build files
 *.tsbuildinfo
 
-# TypeScript files
-*.ts
-
-# TypeScript files
-*.ts
+# Keep source TypeScript files
+!src/**/*.ts
+!src/action-providers/**/*.ts
+!src/action-providers/bobc-protocol/*.ts
+!src/action-providers/xocolatl/*.ts
     
