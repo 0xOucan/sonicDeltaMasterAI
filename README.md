@@ -1,233 +1,136 @@
-# AgentKit Chatbot with BOBC & Xocolatl Protocols
+# AgentKit Chatbot Example
 
-A Telegram chatbot powered by AgentKit that interacts with BOBC (Bolivian Stablecoin) and Xocolatl protocols on Base and Base Sepolia networks.
+This example demonstrates how to build a chatbot using AgentKit that can interact with various protocols on Base network.
 
 ## Features
 
-- **Multi-Network Support**
-  - Base Sepolia (Testnet)
-  - Base (Mainnet)
+- Interactive chat mode
+- Telegram bot mode
+- Autonomous action mode
+- Support for Base Mainnet and Base Sepolia
+- Integration with multiple protocols:
+  - Xocolatl Protocol (XOC) - Mexican Peso Stablecoin
+  - WETH operations
+  - ERC20 token operations
 
-- **BOBC Protocol Integration**
-  - Overcollateralized stablecoin system pegged to BOB
-  - 200% minimum collateralization ratio
-  - WETH collateral management
-  - Health factor monitoring
-  - Liquidation functionality
-  - Fixed exchange rate: 1 USD = 7 BOB
+## Xocolatl Protocol Features
 
-- **Xocolatl Protocol Integration**
-  - Mexican Peso stablecoin (XOC)
-  - Collateral management
-  - Minting and burning capabilities
+The chatbot supports full interaction with the Xocolatl Protocol on Base Mainnet:
 
-- **Telegram Interface**
-  - Interactive chat commands
-  - Real-time blockchain interactions
-  - Balance checking
-  - Transaction status updates
+### Collateral Management
+- Deposit WETH or CBETH as collateral
+- Withdraw collateral
+- Check collateral balances and ratios
+- View maximum mintable XOC
 
-## Prerequisites
+### XOC Token Operations
+- Mint XOC using WETH or CBETH collateral
+- Transfer XOC tokens
+- Check XOC balances
+- Approve XOC spending
 
-- Node.js (v16 or higher)
-- npm or yarn
-- Telegram Bot Token
-- Coinbase Developer Platform API Keys
-- OpenAI API Key
+### Protocol Parameters
+- WETH: 80% max LTV, 85% liquidation threshold
+- CBETH: 80% max LTV, 85% liquidation threshold
 
-## Installation
+## Setup
 
-1. Clone the repository:
-bash
-git clone <repository-url>
-cd <project-directory>
-
+1. Clone the repository
 2. Install dependencies:
-
 ```bash
 npm install
 ```
 
-3. Copy the environment example file and fill in your credentials:
-
-```bash
-cp .env.example .env
-```
-
-## Environment Variables
-
-Create a `.env` file with the following variables:
-
+3. Create a `.env` file with the following variables:
 ```env
-CDP_API_KEY_NAME="your_cdp_api_key_name"
-CDP_API_KEY_PRIVATE_KEY="your_cdp_private_key"
+# OpenAI API Key
 OPENAI_API_KEY="your_openai_api_key"
+
+# Network Configuration
 NETWORK_ID="base-sepolia"
-NETWORK_ID_2="base"
+NETWORK_ID_2="base-mainnet"
+
+# Wallet Private Key (DO NOT SHARE!)
+WALLET_PRIVATE_KEY="your_wallet_private_key"  # Use same key for all networks
+
+# Optional: Telegram Bot Token
 TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
 ```
 
-## Project Structure
-
-```
-src/
-├── action-providers/
-│   ├── bobc-protocol/
-│   │   ├── bobcProtocolActionProvider.ts
-│   │   ├── constants.ts
-│   │   ├── index.ts
-│   │   └── schemas.ts
-│   └── xocolatl/
-│       ├── xocolatlActionProvider.ts
-│       ├── constants.ts
-│       ├── index.ts
-│       └── schemas.ts
-├── chatbot.ts
-└── telegram-interface.ts
-```
-
-## Available Actions
-
-### BOBC Protocol
-- Check WETH/BOBC balances
-- Claim WETH from faucet (testnet)
-- Deposit WETH collateral
-- Mint BOBC stablecoins
-- Monitor health factor
-- Perform liquidations
-- View collateral information
-
-### Xocolatl Protocol
-- Check XOC balance
-- Deposit/withdraw collateral
-- Mint/burn XOC
-- Transfer XOC
-
 ## Usage
 
-1. Start the development server:
-
-```bash
-npm run dev
-```
-
-2. Build the project:
-
-```bash
-npm run build
-```
-
-3. Start the production server:
-
+Start the chatbot:
 ```bash
 npm start
 ```
 
-## Telegram Bot Commands
+Choose your mode:
+1. Chat mode - Interactive console chat
+2. Telegram mode - Telegram bot interface
+3. Auto mode - Autonomous operation
 
-Start interacting with the bot by sending messages in Telegram. The bot understands natural language and can:
-- Check balances
-- Execute transactions
-- Provide protocol information
-- Monitor positions
+### Example Commands
 
-## Development
-
-### Adding New Actions
-
-1. Create a new action provider in `src/action-providers/`
-2. Define schemas using Zod
-3. Implement the action provider class
-4. Register the provider in `chatbot.ts`
-
-### Testing
-
-```bash
-npm test
+1. Wrap ETH to WETH:
+```
+wrap 0.0001 ETH to WETH
 ```
 
-## Security
-
-- Environment variables are required for secure operation
-- Private keys should never be committed to the repository
-- Use testnet for development and testing
-
-## License
-
-MIT License
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## Support
-
-For support, please [create an issue](your-repo-issues-url) or contact the maintainers.
-
-## Smart Contract Addresses
-
-### BOBC Protocol (Base Sepolia)
-
+2. Deposit WETH as collateral:
 ```
-ENGINE_ADDRESS: "0xA7e9D84133936Ab2599BB8ec5B29caa9Df4A9bD1"
-BOBC_ADDRESS: "0x947eA44Bd6560476819a91F2a5DBf030C43dee26"
-WETH_ADDRESS: "0xec915716AE8cC0359A88c24E214792f6A12c192b"
-FAUCET_ADDRESS: "0x2AB5d7A0009b0409A422587A6B0ff18f40a8Cec6"
+deposit 0.0001 WETH as collateral in the XOC protocol
 ```
 
-### Protocol Features
-- Overcollateralization: Minimum 200% ratio required
-- Oracle Integration: Uses Chainlink for ETH/USD price feeds
-- Fixed Exchange Rate: 1 USD = 7 BOB
-- Liquidation Threshold: Health factor below 1
+3. Mint XOC:
+```
+mint 1 XOC using my WETH collateral
+```
 
-## Quick Start Guide
+4. Check collateral info:
+```
+show my collateral information
+```
 
-1. **Network Selection**
-   - Choose between Base Sepolia (testnet) and Base (mainnet)
-   - Default: Base Sepolia for testing
+## Contract Addresses (Base Mainnet)
 
-2. **BOBC Protocol Interaction**
-   ```
-   1. Check WETH balance
-   2. Claim WETH from faucet (testnet only)
-   3. Approve WETH spending
-   4. Deposit WETH as collateral
-   5. Mint BOBC (maintain 200% collateralization)
-   6. Monitor health factor
-   ```
+### Core Protocol
+- XOC Token: `0xa411c9Aa00E020e4f88Bc19996d29c5B7ADB4ACf`
+- WETH: `0x4200000000000000000000000000000000000006`
+- CBETH: `0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22`
 
-3. **Monitoring & Management**
-   - Regular health factor checks
-   - Collateral ratio monitoring
-   - Position management
-   - Liquidation protection
+### Houses of Reserve
+- WETH Reserve: `0xfF69E183A863151B4152055974aa648b3165014D`
+- CBETH Reserve: `0x5c4a154690AE52844F151bcF3aA44885db3c8A58`
+
+### Other Components
+- House of Coin: `0x02c531Cd9791dD3A31428B2987A82361D72F9b13`
+- Account Liquidator: `0x4b75Fb5B0D323672fc6Eac5Afbf487AE4c2ff6de`
+
+## Safety Features
+
+- Network validation before transactions
+- Balance and allowance checks
+- Collateralization ratio monitoring
+- Detailed error messages
+- Transaction confirmation waiting
 
 ## Error Handling
 
-Common errors and solutions:
-- Insufficient collateral: Deposit more WETH
-- Low health factor: Add collateral or repay BOBC
-- Network issues: Verify connection and retry
-- Transaction failures: Check gas and approvals
+The chatbot handles various error scenarios:
+- Insufficient balances
+- Insufficient allowances
+- Undercollateralized positions
+- Network mismatches
+- Failed transactions
 
-## Best Practices
+## Development
 
-1. **Testing**
-   - Start with small amounts
-   - Use testnet for practice
-   - Monitor positions regularly
+To add new features or modify existing ones:
+1. Update the relevant action provider in `src/action-providers/`
+2. Add new schemas if needed
+3. Update the constants and error handlers
+4. Test thoroughly on testnet first
 
-2. **Security**
-   - Never share private keys
-   - Keep environment variables secure
-   - Regular backup of wallet data
+## License
 
-3. **Development**
-   - Follow TypeScript best practices
-   - Document code changes
-   - Test thoroughly before deployment
+MIT

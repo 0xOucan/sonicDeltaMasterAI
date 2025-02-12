@@ -1,3 +1,5 @@
+import { EvmWalletProvider } from "@coinbase/agentkit";
+
 export const XOCOLATL_ADDRESS = "0xa411c9Aa00E020e4f88Bc19996d29c5B7ADB4ACf";
 export const HOUSE_OF_RESERVE_ADDRESS = "0xf6b0A809AEb7157E5A1e2C0111cd58FB4987b136";
 export const HOUSE_OF_COIN_ADDRESS = "0x02c531Cd9791dD3A31428B2987A82361D72F9b13";
@@ -53,21 +55,11 @@ export const HOUSE_OF_RESERVE_ABI = [
 export const HOUSE_OF_COIN_ABI = [
   {
     inputs: [
-      { name: "xocolatl", type: "address" },
+      { name: "reserveAsset", type: "address" },
       { name: "houseOfReserve", type: "address" },
       { name: "amount", type: "uint256" },
     ],
     name: "mintCoin",
-    outputs: [{ type: "bool" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { name: "backedTokenID", type: "uint256" },
-      { name: "amount", type: "uint256" },
-    ],
-    name: "paybackCoin",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -83,6 +75,160 @@ export const LIQUIDATOR_ABI = [
     name: "liquidateUser",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
+
+// Core Protocol Addresses
+export const XOC_ADDRESS = "0xa411c9Aa00E020e4f88Bc19996d29c5B7ADB4ACf";
+export const WETH_ADDRESS = "0x4200000000000000000000000000000000000006";
+export const CBETH_ADDRESS = "0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22";
+export const HOUSE_OF_RESERVE_WETH = "0xfF69E183A863151B4152055974aa648b3165014D";
+export const HOUSE_OF_RESERVE_CBETH = "0x5c4a154690AE52844F151bcF3aA44885db3c8A58";
+export const ENGINE_ADDRESS = "0x7B6d3eA7A3F7281E3F8Aa619c9E39a433B796428";
+
+// Collateral Parameters
+export const WETH_MAX_LTV = 80; // 80%
+export const WETH_LIQUIDATION_THRESHOLD = 85; // 85%
+export const CBETH_MAX_LTV = 80; // 80%
+export const CBETH_LIQUIDATION_THRESHOLD = 85; // 85%
+
+// Contract ABIs
+export const XOC_ABI = [
+  {
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "transfer",
+    outputs: [{ type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "approve",
+    outputs: [{ type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+export const ENGINE_ABI = [
+  {
+    inputs: [{ name: "amount", type: "uint256" }],
+    name: "depositCollateral",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "amount", type: "uint256" }],
+    name: "mintXoc",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "amount", type: "uint256" }],
+    name: "withdrawCollateral",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "amount", type: "uint256" }],
+    name: "burnXoc",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "user", type: "address" }],
+    name: "getCollateralBalance",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "user", type: "address" }],
+    name: "getXocBalance",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+export const WETH_ABI = [
+  {
+    inputs: [
+      { name: "guy", type: "address" },
+      { name: "wad", type: "uint256" },
+    ],
+    name: "approve",
+    outputs: [{ type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "deposit",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+] as const;
+
+export const CBETH_ABI = [
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "approve",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    name: "allowance",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "decimals",
+    outputs: [{ name: "", type: "uint8" }],
+    stateMutability: "view",
     type: "function",
   },
 ] as const;

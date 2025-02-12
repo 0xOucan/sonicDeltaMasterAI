@@ -8,6 +8,7 @@ import {
   cdpWalletActionProvider,
   pythActionProvider,
   Network,
+  ViemWalletProvider,
 } from "@coinbase/agentkit";
 
 import { getLangChainTools } from "@coinbase/agentkit-langchain";
@@ -20,12 +21,11 @@ import * as fs from "fs";
 import * as readline from "readline";
 import { TelegramInterface } from "./telegram-interface";
 import "reflect-metadata";
-import {
-  xocolatlActionProvider,
-} from "./action-providers/xocolatl";
+import { xocolatlActionProvider } from "./action-providers/xocolatl";
 import { createPublicClient, http } from 'viem';
-import { base } from 'viem/chains';
-import { bobcProtocolActionProvider } from "./action-providers/bobc-protocol";
+import { base, baseSepolia } from 'viem/chains';
+import { privateKeyToAccount } from "viem/accounts";
+import { createWalletClient } from "viem";
 
 dotenv.config();
 
@@ -40,10 +40,9 @@ function validateEnvironment(): void {
 
   const requiredVars = [
     "OPENAI_API_KEY",
-    "CDP_API_KEY_NAME",
-    "CDP_API_KEY_PRIVATE_KEY",
     "NETWORK_ID",
-    "NETWORK_ID_2"  // Add NETWORK_ID_2 as required
+    "NETWORK_ID_2",
+    "WALLET_PRIVATE_KEY"
   ];
   
   requiredVars.forEach((varName) => {
@@ -63,7 +62,7 @@ function validateEnvironment(): void {
   // Validate network IDs
   const validNetworks = {
     NETWORK_ID: ["base-sepolia"],
-    NETWORK_ID_2: ["base"]
+    NETWORK_ID_2: ["base-mainnet", "base"] // Allow both forms
   };
 
   if (!validNetworks.NETWORK_ID.includes(process.env.NETWORK_ID!)) {
@@ -72,7 +71,7 @@ function validateEnvironment(): void {
   }
 
   if (!validNetworks.NETWORK_ID_2.includes(process.env.NETWORK_ID_2!)) {
-    console.error(`Error: NETWORK_ID_2 must be: base`);
+    console.error(`Error: NETWORK_ID_2 must be: base-mainnet or base`);
     process.exit(1);
   }
 
@@ -87,9 +86,6 @@ validateEnvironment();
 // Add this right after the validateEnvironment() call
 console.log("Environment validated successfully");
 console.log("Network ID:", process.env.NETWORK_ID || "base-sepolia");
-
-// Configure a file to persist the agent's CDP MPC Wallet Data
-const WALLET_DATA_FILE = "wallet_data.txt";
 
 async function selectNetwork(): Promise<string> {
   const rl = readline.createInterface({
@@ -109,12 +105,12 @@ async function selectNetwork(): Promise<string> {
 
   switch (answer.trim()) {
     case "1":
-      return process.env.NETWORK_ID || "base-sepolia";
+      return "base-sepolia";
     case "2":
-      return process.env.NETWORK_ID_2 || "base";
+      return "base-mainnet";
     default:
       console.log("Invalid choice, defaulting to Base Sepolia");
-      return process.env.NETWORK_ID || "base-sepolia";
+      return "base-sepolia";
   }
 }
 
@@ -127,21 +123,21 @@ async function initializeAgent() {
   try {
     console.log("Initializing agent...");
 
-    // Add network selection before LLM initialization
     const selectedNetwork = await selectNetwork();
     console.log(`Selected network: ${selectedNetwork}`);
 
-    // Define network configuration according to Network interface
-    const network: Network = {
-      protocolFamily: "evm",
-      networkId: selectedNetwork,
-      chainId: selectedNetwork === "base" ? "8453" : "84532", // Base mainnet or Base Sepolia
-    };
+    const privateKey = process.env.WALLET_PRIVATE_KEY;
 
-    console.log(`Network: ${network.networkId} (Chain ID: ${network.chainId})`);
+    if (!privateKey) {
+      throw new Error("Wallet private key not found in environment variables");
+    }
 
-    // Create transport configuration
-    const transport = http(base.rpcUrls.default.http[0], {
+    const selectedChain = selectedNetwork === "base-mainnet" ? base : baseSepolia;
+
+    // Create Viem account and client
+    const account = privateKeyToAccount(privateKey as `0x${string}`);
+    
+    const transport = http(selectedChain.rpcUrls.default.http[0], {
       batch: true,
       fetchOptions: {},
       retryCount: 3,
@@ -149,11 +145,14 @@ async function initializeAgent() {
       timeout: 30_000,
     });
 
-    // Create public client
-    const publicClient = createPublicClient({
-      chain: base,
+    const client = createWalletClient({
+      account,
+      chain: selectedChain,
       transport,
     });
+
+    // Create Viem wallet provider
+    const walletProvider = new ViemWalletProvider(client);
 
     // Initialize LLM
     const llm = new ChatOpenAI({
@@ -163,30 +162,7 @@ async function initializeAgent() {
 
     console.log("LLM initialized");
 
-    let walletDataStr: string | null = null;
-
-    // Read existing wallet data if available
-    if (fs.existsSync(WALLET_DATA_FILE)) {
-      try {
-        walletDataStr = fs.readFileSync(WALLET_DATA_FILE, "utf8");
-      } catch (error) {
-        console.error("Error reading wallet data:", error);
-      }
-    }
-
-    // Configure CDP Wallet Provider with proper network configuration
-    const config = {
-      apiKeyName: process.env.CDP_API_KEY_NAME,
-      apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-      cdpWalletData: walletDataStr || undefined,
-      networkId: network.networkId,
-      network: network,
-      client: publicClient,
-    };
-
-    const walletProvider = await CdpWalletProvider.configureWithWallet(config);
-
-    // Initialize AgentKit with BOB Protocol
+    // Initialize AgentKit with only Xocolatl for now
     const agentkit = await AgentKit.from({
       walletProvider,
       actionProviders: [
@@ -194,70 +170,57 @@ async function initializeAgent() {
         pythActionProvider(),
         walletActionProvider(),
         erc20ActionProvider(),
-        cdpApiActionProvider({
-          apiKeyName: process.env.CDP_API_KEY_NAME,
-          apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY?.replace(
-            /\\n/g,
-            "\n",
-          ),
-        }),
-        cdpWalletActionProvider({
-          apiKeyName: process.env.CDP_API_KEY_NAME,
-          apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY?.replace(
-            /\\n/g,
-            "\n",
-          ),
-        }),
         xocolatlActionProvider(),
-        bobcProtocolActionProvider(),
+        // Remove bobcProtocolActionProvider for now
       ],
     });
 
     const tools = await getLangChainTools(agentkit);
-
-    // Store buffered conversation history in memory
     const memory = new MemorySaver();
     const agentConfig = {
       configurable: { thread_id: "CDP AgentKit Chatbot Example!" },
     };
 
-    // Create React Agent using the LLM and CDP AgentKit tools
     const agent = createReactAgent({
       llm,
       tools,
       checkpointSaver: memory,
       messageModifier: `
         You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are 
-        empowered to interact onchain using your tools. If you ever need funds, you can request them from the 
-        faucet if you are on network ID 'base-sepolia'. If not, you can provide your wallet details and request 
-        funds from the user. Before executing your first action, get the wallet details to see what network 
-        you're on. If there is a 5XX (internal) HTTP error code, ask the user to try again later.
-
-        For Base Sepolia testnet, you can use the BOBC Protocol:
-        1. First check your WETH balance using get-weth-balance
-        2. If needed, claim WETH from the faucet using claim-weth-faucet
-        3. Deposit WETH as collateral (requires approval first)
-        4. Mint BOBC stablecoins against your collateral (maintain 200% collateralization)
+        empowered to interact onchain using your tools. 
         
-        Important BOBC Protocol features:
-        - Requires 200% overcollateralization (e.g., $200 WETH collateral = 100 BOBC mint limit)
-        - 1 USD = 7 BOB (fixed exchange rate)
-        - Uses Chainlink oracles for ETH/USD pricing
-        - Monitor your position's health factor to avoid liquidation
+        Current Network: ${selectedNetwork === "base-mainnet" ? "Base Mainnet" : "Base Sepolia Testnet"}
         
-        Available BOBC tools:
-        - Check balances (WETH, BOBC)
-        - View collateral information
-        - Deposit/withdraw collateral
-        - Mint/burn BOBC
-        - Monitor health factor
-        - Perform liquidations
-        `,
+        Available Protocol:
+        Xocolatl (XOC) - Mexican Peso Stablecoin on Base Mainnet:
+        - Transfer and approve XOC tokens
+        - Check XOC balances
+        - Deposit/withdraw collateral (WETH)
+        - Mint XOC using collateral
+        - Liquidate undercollateralized positions
+        
+        Important:
+        - Xocolatl protocol ONLY works on Base Mainnet
+        - Make sure user is on Base Mainnet before any XOC operations
+        - Current collateral type is WETH
+        - Check WETH balance and allowance before operations
+        
+        Before executing any transaction:
+        - Always check balances and allowances first
+        - Explain the risks to the user
+        - Confirm transaction details
+        - Handle errors gracefully
+        
+        For Xocolatl operations:
+        1. Check WETH balance before deposits
+        2. Ensure WETH allowance before deposits
+        3. Verify collateral ratios before minting
+        4. Use clear error messages
+        
+        Get the wallet details first to see what network you're on and what tokens are available.
+        If not on Base Mainnet, inform the user they need to switch networks to use Xocolatl.
+      `,
     });
-
-    // Save wallet data
-    const exportedWallet = await walletProvider.exportWallet();
-    fs.writeFileSync(WALLET_DATA_FILE, JSON.stringify(exportedWallet));
 
     console.log("Agent initialization complete");
     return { agent, config: agentConfig };

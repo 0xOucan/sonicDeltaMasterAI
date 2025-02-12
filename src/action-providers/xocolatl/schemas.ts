@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const TransferXocSchema = z
   .object({
-    to: z.string().describe("The destination address to receive XOC tokens"),
-    amount: z.string().describe("The amount of XOC tokens to transfer"),
+    to: z.string().describe("The destination address to receive XOC tokens. Must be a valid Ethereum address."),
+    amount: z.string().describe("The amount of XOC tokens to transfer (in wei). Make sure you have sufficient balance."),
   })
   .strip();
 
