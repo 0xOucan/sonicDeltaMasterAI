@@ -7,6 +7,7 @@ import {
   cdpApiActionProvider,
   cdpWalletActionProvider,
   pythActionProvider,
+  Network,
 } from "@coinbase/agentkit";
 
 import { getLangChainTools } from "@coinbase/agentkit-langchain";
@@ -18,6 +19,13 @@ import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as readline from "readline";
 import { TelegramInterface } from "./telegram-interface";
+import "reflect-metadata";
+import {
+  xocolatlActionProvider,
+} from "./action-providers/xocolatl";
+import { createPublicClient, http } from 'viem';
+import { base } from 'viem/chains';
+import { bobcProtocolActionProvider } from "./action-providers/bobc-protocol";
 
 dotenv.config();
 
@@ -30,19 +38,20 @@ dotenv.config();
 function validateEnvironment(): void {
   const missingVars: string[] = [];
 
-  // Check required variables
   const requiredVars = [
     "OPENAI_API_KEY",
     "CDP_API_KEY_NAME",
     "CDP_API_KEY_PRIVATE_KEY",
+    "NETWORK_ID",
+    "NETWORK_ID_2"  // Add NETWORK_ID_2 as required
   ];
+  
   requiredVars.forEach((varName) => {
     if (!process.env[varName]) {
       missingVars.push(varName);
     }
   });
 
-  // Exit if any required variables are missing
   if (missingVars.length > 0) {
     console.error("Error: Required environment variables are not set");
     missingVars.forEach((varName) => {
@@ -51,12 +60,25 @@ function validateEnvironment(): void {
     process.exit(1);
   }
 
-  // Warn about optional NETWORK_ID
-  if (!process.env.NETWORK_ID) {
-    console.warn(
-      "Warning: NETWORK_ID not set, defaulting to base-sepolia testnet",
-    );
+  // Validate network IDs
+  const validNetworks = {
+    NETWORK_ID: ["base-sepolia"],
+    NETWORK_ID_2: ["base"]
+  };
+
+  if (!validNetworks.NETWORK_ID.includes(process.env.NETWORK_ID!)) {
+    console.error(`Error: NETWORK_ID must be: base-sepolia`);
+    process.exit(1);
   }
+
+  if (!validNetworks.NETWORK_ID_2.includes(process.env.NETWORK_ID_2!)) {
+    console.error(`Error: NETWORK_ID_2 must be: base`);
+    process.exit(1);
+  }
+
+  console.log("Environment validated successfully");
+  console.log(`Primary Network (Testnet): ${process.env.NETWORK_ID}`);
+  console.log(`Secondary Network (Mainnet): ${process.env.NETWORK_ID_2}`);
 }
 
 // Add this right after imports and before any other code
@@ -69,6 +91,33 @@ console.log("Network ID:", process.env.NETWORK_ID || "base-sepolia");
 // Configure a file to persist the agent's CDP MPC Wallet Data
 const WALLET_DATA_FILE = "wallet_data.txt";
 
+async function selectNetwork(): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  console.log("\nSelect network:");
+  console.log("1. Base Sepolia (Testnet)");
+  console.log("2. Base (Mainnet)");
+
+  const answer = await new Promise<string>((resolve) => {
+    rl.question("Enter your choice (1 or 2): ", resolve);
+  });
+  
+  rl.close();
+
+  switch (answer.trim()) {
+    case "1":
+      return process.env.NETWORK_ID || "base-sepolia";
+    case "2":
+      return process.env.NETWORK_ID_2 || "base";
+    default:
+      console.log("Invalid choice, defaulting to Base Sepolia");
+      return process.env.NETWORK_ID || "base-sepolia";
+  }
+}
+
 /**
  * Initialize the agent with CDP Agentkit
  *
@@ -78,9 +127,37 @@ async function initializeAgent() {
   try {
     console.log("Initializing agent...");
 
+    // Add network selection before LLM initialization
+    const selectedNetwork = await selectNetwork();
+    console.log(`Selected network: ${selectedNetwork}`);
+
+    // Define network configuration according to Network interface
+    const network: Network = {
+      protocolFamily: "evm",
+      networkId: selectedNetwork,
+      chainId: selectedNetwork === "base" ? "8453" : "84532", // Base mainnet or Base Sepolia
+    };
+
+    console.log(`Network: ${network.networkId} (Chain ID: ${network.chainId})`);
+
+    // Create transport configuration
+    const transport = http(base.rpcUrls.default.http[0], {
+      batch: true,
+      fetchOptions: {},
+      retryCount: 3,
+      retryDelay: 100,
+      timeout: 30_000,
+    });
+
+    // Create public client
+    const publicClient = createPublicClient({
+      chain: base,
+      transport,
+    });
+
     // Initialize LLM
     const llm = new ChatOpenAI({
-      model: "gpt-4-turbo-preview", // Changed from gpt-4o-mini which seems incorrect
+      model: "gpt-4-turbo-preview",
       temperature: 0,
     });
 
@@ -94,24 +171,22 @@ async function initializeAgent() {
         walletDataStr = fs.readFileSync(WALLET_DATA_FILE, "utf8");
       } catch (error) {
         console.error("Error reading wallet data:", error);
-        // Continue without wallet data
       }
     }
 
-    // Configure CDP Wallet Provider
+    // Configure CDP Wallet Provider with proper network configuration
     const config = {
       apiKeyName: process.env.CDP_API_KEY_NAME,
-      apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY?.replace(
-        /\\n/g,
-        "\n",
-      ),
+      apiKeyPrivateKey: process.env.CDP_API_KEY_PRIVATE_KEY?.replace(/\\n/g, "\n"),
       cdpWalletData: walletDataStr || undefined,
-      networkId: process.env.NETWORK_ID || "base-sepolia",
+      networkId: network.networkId,
+      network: network,
+      client: publicClient,
     };
 
     const walletProvider = await CdpWalletProvider.configureWithWallet(config);
 
-    // Initialize AgentKit
+    // Initialize AgentKit with BOB Protocol
     const agentkit = await AgentKit.from({
       walletProvider,
       actionProviders: [
@@ -133,6 +208,8 @@ async function initializeAgent() {
             "\n",
           ),
         }),
+        xocolatlActionProvider(),
+        bobcProtocolActionProvider(),
       ],
     });
 
@@ -154,11 +231,27 @@ async function initializeAgent() {
         empowered to interact onchain using your tools. If you ever need funds, you can request them from the 
         faucet if you are on network ID 'base-sepolia'. If not, you can provide your wallet details and request 
         funds from the user. Before executing your first action, get the wallet details to see what network 
-        you're on. If there is a 5XX (internal) HTTP error code, ask the user to try again later. If someone 
-        asks you to do something you can't do with your currently available tools, you must say so, and 
-        encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to 
-        docs.cdp.coinbase.com for more information. Be concise and helpful with your responses. Refrain from 
-        restating your tools' descriptions unless it is explicitly requested.
+        you're on. If there is a 5XX (internal) HTTP error code, ask the user to try again later.
+
+        For Base Sepolia testnet, you can use the BOBC Protocol:
+        1. First check your WETH balance using get-weth-balance
+        2. If needed, claim WETH from the faucet using claim-weth-faucet
+        3. Deposit WETH as collateral (requires approval first)
+        4. Mint BOBC stablecoins against your collateral (maintain 200% collateralization)
+        
+        Important BOBC Protocol features:
+        - Requires 200% overcollateralization (e.g., $200 WETH collateral = 100 BOBC mint limit)
+        - 1 USD = 7 BOB (fixed exchange rate)
+        - Uses Chainlink oracles for ETH/USD pricing
+        - Monitor your position's health factor to avoid liquidation
+        
+        Available BOBC tools:
+        - Check balances (WETH, BOBC)
+        - View collateral information
+        - Deposit/withdraw collateral
+        - Mint/burn BOBC
+        - Monitor health factor
+        - Perform liquidations
         `,
     });
 

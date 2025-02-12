@@ -7,13 +7,11 @@ import {
 } from "@coinbase/agentkit";
 import { encodeFunctionData } from "viem";
 import type { Hex } from "viem";
+import "reflect-metadata";
 import {
   TransferXocSchema,
   ApproveXocSchema,
   GetXocBalanceSchema,
-  MintXocSchema,
-  BurnXocSchema,
-  FlashLoanSchema,
   HouseOfReserveSchema,
   HouseOfCoinSchema,
   LiquidateSchema,
@@ -32,280 +30,222 @@ import {
 /**
  * XocolatlActionProvider provides actions for interacting with LA DAO's Xocolatl ($XOC) token
  */
-export class XocolatlActionProvider extends ActionProvider {
+export class XocolatlActionProvider extends ActionProvider<EvmWalletProvider> {
   constructor() {
     super("xocolatl", []);
   }
 
   @CreateAction({
     name: "transfer-xoc",
-    description: "Transfer XOC tokens to another address",
+    description: `
+This tool will transfer XOC tokens to another address onchain.
+It takes:
+- to: The destination address that will receive the XOC tokens
+- amount: The amount of XOC tokens to transfer (in wei)
+
+The tool will return a success message with the transaction details or an error message if the transfer fails.
+`,
     schema: TransferXocSchema,
   })
   async transferXoc(
     walletProvider: EvmWalletProvider,
     args: z.infer<typeof TransferXocSchema>,
   ): Promise<string> {
-    const data = encodeFunctionData({
-      abi: XOCOLATL_ABI,
-      functionName: "transfer",
-      args: [args.to as Hex, BigInt(args.amount)],
-    });
+    try {
+      const data = encodeFunctionData({
+        abi: XOCOLATL_ABI,
+        functionName: "transfer",
+        args: [args.to as Hex, BigInt(args.amount)],
+      });
 
-    const tx = await walletProvider.sendTransaction({
-      to: XOCOLATL_ADDRESS as Hex,
-      data,
-    });
+      const tx = await walletProvider.sendTransaction({
+        to: XOCOLATL_ADDRESS as Hex,
+        data,
+      });
 
-    await walletProvider.waitForTransactionReceipt(tx);
-    return `Successfully transferred ${args.amount} XOC to ${args.to}`;
+      await walletProvider.waitForTransactionReceipt(tx);
+      return `Successfully transferred ${args.amount} XOC to ${args.to}`;
+    } catch (error) {
+      return `Error transferring XOC: ${error}`;
+    }
   }
 
   @CreateAction({
     name: "approve-xoc",
-    description: "Approve an address to spend XOC tokens",
+    description: `
+This tool will approve another address to spend XOC tokens on behalf of the user.
+It takes:
+- spender: The address to approve for spending XOC tokens
+- amount: The amount of XOC tokens to approve (in wei)
+
+Important: This is required before any contract can transfer XOC tokens on your behalf.
+`,
     schema: ApproveXocSchema,
   })
   async approveXoc(
     walletProvider: EvmWalletProvider,
     args: z.infer<typeof ApproveXocSchema>,
   ): Promise<string> {
-    const data = encodeFunctionData({
-      abi: XOCOLATL_ABI,
-      functionName: "approve",
-      args: [args.spender as Hex, BigInt(args.amount)],
-    });
+    try {
+      const data = encodeFunctionData({
+        abi: XOCOLATL_ABI,
+        functionName: "approve",
+        args: [args.spender as Hex, BigInt(args.amount)],
+      });
 
-    const tx = await walletProvider.sendTransaction({
-      to: XOCOLATL_ADDRESS as Hex,
-      data,
-    });
+      const tx = await walletProvider.sendTransaction({
+        to: XOCOLATL_ADDRESS as Hex,
+        data,
+      });
 
-    await walletProvider.waitForTransactionReceipt(tx);
-    return `Successfully approved ${args.spender} to spend ${args.amount} XOC`;
+      await walletProvider.waitForTransactionReceipt(tx);
+      return `Successfully approved ${args.spender} to spend ${args.amount} XOC`;
+    } catch (error) {
+      return `Error approving XOC: ${error}`;
+    }
   }
 
   @CreateAction({
-    name: "get-xoc-balance",
-    description: "Get XOC token balance for an address",
+    name: "get-balance",
+    description: `
+This tool will check the XOC token balance of any address.
+It takes:
+- address: The address to check the balance for
+
+Returns the balance in wei format.
+`,
     schema: GetXocBalanceSchema,
   })
-  async getXocBalance(
+  async getBalance(
     walletProvider: EvmWalletProvider,
     args: z.infer<typeof GetXocBalanceSchema>,
   ): Promise<string> {
-    const balance = await walletProvider.readContract({
-      address: XOCOLATL_ADDRESS as Hex,
-      abi: XOCOLATL_ABI,
-      functionName: "balanceOf",
-      args: [args.address as Hex],
-    }) as bigint;
+    try {
+      const balance = await walletProvider.readContract({
+        address: XOCOLATL_ADDRESS as Hex,
+        abi: XOCOLATL_ABI,
+        functionName: "balanceOf",
+        args: [args.address as Hex],
+      }) as bigint;
 
-    return `XOC balance for ${args.address}: ${balance.toString()}`;
-  }
-
-  @CreateAction({
-    name: "mint-xoc",
-    description: "Mint new XOC tokens (requires MINTER_ROLE)",
-    schema: MintXocSchema,
-  })
-  async mintXoc(
-    walletProvider: EvmWalletProvider,
-    args: z.infer<typeof MintXocSchema>,
-  ): Promise<string> {
-    const data = encodeFunctionData({
-      abi: XOCOLATL_ABI,
-      functionName: "mint",
-      args: [args.to as Hex, BigInt(args.amount)],
-    });
-
-    const tx = await walletProvider.sendTransaction({
-      to: XOCOLATL_ADDRESS as Hex,
-      data,
-    });
-
-    await walletProvider.waitForTransactionReceipt(tx);
-    return `Successfully minted ${args.amount} XOC to ${args.to}`;
-  }
-
-  @CreateAction({
-    name: "burn-xoc",
-    description: "Burn XOC tokens (requires BURNER_ROLE)",
-    schema: BurnXocSchema,
-  })
-  async burnXoc(
-    walletProvider: EvmWalletProvider,
-    args: z.infer<typeof BurnXocSchema>,
-  ): Promise<string> {
-    const data = encodeFunctionData({
-      abi: XOCOLATL_ABI,
-      functionName: "burn",
-      args: [args.from as Hex, BigInt(args.amount)],
-    });
-
-    const tx = await walletProvider.sendTransaction({
-      to: XOCOLATL_ADDRESS as Hex,
-      data,
-    });
-
-    await walletProvider.waitForTransactionReceipt(tx);
-    return `Successfully burned ${args.amount} XOC from ${args.from}`;
-  }
-
-  @CreateAction({
-    name: "flash-loan",
-    description: "Execute a flash loan of XOC tokens",
-    schema: FlashLoanSchema,
-  })
-  async flashLoan(
-    walletProvider: EvmWalletProvider,
-    args: z.infer<typeof FlashLoanSchema>,
-  ): Promise<string> {
-    const data = encodeFunctionData({
-      abi: XOCOLATL_ABI,
-      functionName: "flashLoan",
-      args: [
-        args.receiver as Hex,
-        args.token as Hex,
-        BigInt(args.amount),
-        args.data as Hex,
-      ],
-    });
-
-    const tx = await walletProvider.sendTransaction({
-      to: XOCOLATL_ADDRESS as Hex,
-      data,
-    });
-
-    await walletProvider.waitForTransactionReceipt(tx);
-    return `Successfully executed flash loan of ${args.amount} tokens to ${args.receiver}`;
-  }
-
-  @CreateAction({
-    name: "deposit-reserve",
-    description: "Deposit collateral into House of Reserve",
-    schema: HouseOfReserveSchema,
-  })
-  async depositReserve(
-    walletProvider: EvmWalletProvider,
-    args: z.infer<typeof HouseOfReserveSchema>,
-  ): Promise<string> {
-    const data = encodeFunctionData({
-      abi: HOUSE_OF_RESERVE_ABI,
-      functionName: "deposit",
-      args: [BigInt(args.amount)],
-    });
-
-    const tx = await walletProvider.sendTransaction({
-      to: HOUSE_OF_RESERVE_ADDRESS as Hex,
-      data,
-    });
-
-    await walletProvider.waitForTransactionReceipt(tx);
-    return `Successfully deposited ${args.amount} collateral`;
-  }
-
-  @CreateAction({
-    name: "withdraw-reserve",
-    description: "Withdraw collateral from House of Reserve",
-    schema: HouseOfReserveSchema,
-  })
-  async withdrawReserve(
-    walletProvider: EvmWalletProvider,
-    args: z.infer<typeof HouseOfReserveSchema>,
-  ): Promise<string> {
-    const data = encodeFunctionData({
-      abi: HOUSE_OF_RESERVE_ABI,
-      functionName: "withdraw",
-      args: [BigInt(args.amount)],
-    });
-
-    const tx = await walletProvider.sendTransaction({
-      to: HOUSE_OF_RESERVE_ADDRESS as Hex,
-      data,
-    });
-
-    await walletProvider.waitForTransactionReceipt(tx);
-    return `Successfully withdrew ${args.amount} collateral`;
+      return `Balance: ${balance.toString()} XOC`;
+    } catch (error) {
+      return `Error getting balance: ${error}`;
+    }
   }
 
   @CreateAction({
     name: "borrow-xoc",
-    description: "Borrow XOC tokens from House of Coin",
+    description: `
+This tool allows borrowing XOC tokens by using collateral in the House of Reserve.
+It takes:
+- amount: The amount of XOC to borrow (in wei)
+
+Important: 
+- You must have sufficient collateral deposited first
+- The borrowed amount must maintain the required collateralization ratio
+- If unsure about the amount, use other actions to check your borrowing power first
+`,
     schema: HouseOfCoinSchema,
   })
   async borrowXoc(
     walletProvider: EvmWalletProvider,
     args: z.infer<typeof HouseOfCoinSchema>,
   ): Promise<string> {
-    const data = encodeFunctionData({
-      abi: HOUSE_OF_COIN_ABI,
-      functionName: "mintCoin",
-      args: [
-        XOCOLATL_ADDRESS as Hex,
-        HOUSE_OF_RESERVE_ADDRESS as Hex,
-        BigInt(args.amount),
-      ],
-    });
+    try {
+      const data = encodeFunctionData({
+        abi: HOUSE_OF_COIN_ABI,
+        functionName: "mintCoin",
+        args: [
+          XOCOLATL_ADDRESS as Hex,
+          HOUSE_OF_RESERVE_ADDRESS as Hex,
+          BigInt(args.amount),
+        ],
+      });
 
-    const tx = await walletProvider.sendTransaction({
-      to: HOUSE_OF_COIN_ADDRESS as Hex,
-      data,
-    });
+      const tx = await walletProvider.sendTransaction({
+        to: HOUSE_OF_COIN_ADDRESS as Hex,
+        data,
+      });
 
-    await walletProvider.waitForTransactionReceipt(tx);
-    return `Successfully borrowed ${args.amount} XOC`;
+      await walletProvider.waitForTransactionReceipt(tx);
+      return `Successfully borrowed ${args.amount} XOC`;
+    } catch (error) {
+      return `Error borrowing XOC: ${error}`;
+    }
   }
 
   @CreateAction({
     name: "repay-xoc",
-    description: "Repay XOC tokens to House of Coin",
+    description: `
+This tool allows repaying borrowed XOC tokens to the House of Coin.
+It takes:
+- amount: The amount of XOC to repay (in wei)
+
+Important:
+- Make sure you have approved the House of Coin to spend your XOC tokens first
+- The full amount must be repaid to withdraw your collateral
+`,
     schema: HouseOfCoinSchema,
   })
   async repayXoc(
     walletProvider: EvmWalletProvider,
     args: z.infer<typeof HouseOfCoinSchema>,
   ): Promise<string> {
-    const data = encodeFunctionData({
-      abi: HOUSE_OF_COIN_ABI,
-      functionName: "paybackCoin",
-      args: [BigInt(0), BigInt(args.amount)],
-    });
+    try {
+      const data = encodeFunctionData({
+        abi: HOUSE_OF_COIN_ABI,
+        functionName: "paybackCoin",
+        args: [BigInt(0), BigInt(args.amount)],
+      });
 
-    const tx = await walletProvider.sendTransaction({
-      to: HOUSE_OF_COIN_ADDRESS as Hex,
-      data,
-    });
+      const tx = await walletProvider.sendTransaction({
+        to: HOUSE_OF_COIN_ADDRESS as Hex,
+        data,
+      });
 
-    await walletProvider.waitForTransactionReceipt(tx);
-    return `Successfully repaid ${args.amount} XOC`;
+      await walletProvider.waitForTransactionReceipt(tx);
+      return `Successfully repaid ${args.amount} XOC`;
+    } catch (error) {
+      return `Error repaying XOC: ${error}`;
+    }
   }
 
   @CreateAction({
     name: "liquidate-account",
-    description: "Liquidate an undercollateralized account",
+    description: `
+This tool will liquidate an undercollateralized account in the Xocolatl system.
+It takes:
+- account: The address of the account to liquidate
+
+Important:
+- The account must be below the minimum collateralization ratio
+- You must have sufficient XOC tokens to perform the liquidation
+- Check the account's health factor before attempting liquidation
+`,
     schema: LiquidateSchema,
   })
   async liquidateAccount(
     walletProvider: EvmWalletProvider,
     args: z.infer<typeof LiquidateSchema>,
   ): Promise<string> {
-    const data = encodeFunctionData({
-      abi: LIQUIDATOR_ABI,
-      functionName: "liquidateUser",
-      args: [
-        args.account as Hex,
-        HOUSE_OF_RESERVE_ADDRESS as Hex,
-      ],
-    });
+    try {
+      const data = encodeFunctionData({
+        abi: LIQUIDATOR_ABI,
+        functionName: "liquidateUser",
+        args: [args.account as Hex, HOUSE_OF_RESERVE_ADDRESS as Hex],
+      });
 
-    const tx = await walletProvider.sendTransaction({
-      to: ACCOUNT_LIQUIDATOR_ADDRESS as Hex,
-      data,
-    });
+      const tx = await walletProvider.sendTransaction({
+        to: ACCOUNT_LIQUIDATOR_ADDRESS as Hex,
+        data,
+      });
 
-    await walletProvider.waitForTransactionReceipt(tx);
-    return `Successfully liquidated account ${args.account}`;
+      await walletProvider.waitForTransactionReceipt(tx);
+      return `Successfully liquidated account ${args.account}`;
+    } catch (error) {
+      return `Error liquidating account: ${error}`;
+    }
   }
 
   supportsNetwork = (network: Network) => network.protocolFamily === "evm";
