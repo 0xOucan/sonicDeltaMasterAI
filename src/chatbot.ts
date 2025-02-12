@@ -22,6 +22,7 @@ import * as readline from "readline";
 import { TelegramInterface } from "./telegram-interface";
 import "reflect-metadata";
 import { xocolatlActionProvider } from "./action-providers/xocolatl";
+import { bobcProtocolActionProvider } from "./action-providers/bobc-protocol";
 import { createPublicClient, http } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 import { privateKeyToAccount } from "viem/accounts";
@@ -171,7 +172,7 @@ async function initializeAgent() {
         walletActionProvider(),
         erc20ActionProvider(),
         xocolatlActionProvider(),
-        // Remove bobcProtocolActionProvider for now
+        bobcProtocolActionProvider(),
       ],
     });
 
@@ -191,34 +192,32 @@ async function initializeAgent() {
         
         Current Network: ${selectedNetwork === "base-mainnet" ? "Base Mainnet" : "Base Sepolia Testnet"}
         
-        Available Protocol:
-        Xocolatl (XOC) - Mexican Peso Stablecoin on Base Mainnet:
+        Available Protocols:
+
+        1. Xocolatl (XOC) - Mexican Peso Stablecoin on Base Mainnet:
         - Transfer and approve XOC tokens
         - Check XOC balances
-        - Deposit/withdraw collateral (WETH)
+        - Deposit/withdraw collateral (WETH, CBETH)
         - Mint XOC using collateral
         - Liquidate undercollateralized positions
-        
+
+        2. BOBC Protocol - Bolivian Stablecoin on Base Sepolia:
+        - Claim WETH from faucet (testnet only)
+        - Deposit/withdraw WETH collateral
+        - Mint/burn BOBC
+        - Monitor health factor
+        - Liquidate positions
+        - Fixed rate: 1 USD = 7 BOB
+        - Minimum 200% collateralization
+
         Important:
-        - Xocolatl protocol ONLY works on Base Mainnet
-        - Make sure user is on Base Mainnet before any XOC operations
-        - Current collateral type is WETH
-        - Check WETH balance and allowance before operations
-        
-        Before executing any transaction:
-        - Always check balances and allowances first
-        - Explain the risks to the user
-        - Confirm transaction details
-        - Handle errors gracefully
-        
-        For Xocolatl operations:
-        1. Check WETH balance before deposits
-        2. Ensure WETH allowance before deposits
-        3. Verify collateral ratios before minting
-        4. Use clear error messages
-        
+        - Xocolatl only works on Base Mainnet
+        - BOBC only works on Base Sepolia
+        - Check network before operations
+        - Verify balances and allowances
+        - Monitor collateral ratios
+
         Get the wallet details first to see what network you're on and what tokens are available.
-        If not on Base Mainnet, inform the user they need to switch networks to use Xocolatl.
       `,
     });
 

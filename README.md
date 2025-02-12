@@ -1,6 +1,61 @@
-# AgentKit Chatbot Example
+# AgentKit Multi-Protocol Chatbot
 
-This example demonstrates how to build a chatbot using AgentKit that can interact with various protocols on Base network.
+This chatbot demonstrates integration with multiple DeFi protocols across Base networks:
+
+## Supported Protocols
+
+### Xocolatl Protocol (Base Mainnet)
+- Mexican Peso Stablecoin (XOC)
+- Collateral types: WETH, CBETH
+- LTV: 80%, Liquidation threshold: 85%
+- Features:
+  - Deposit/withdraw collateral
+  - Mint/burn XOC
+  - Transfer tokens
+  - Monitor positions
+
+### BOBC Protocol (Base Sepolia)
+- Bolivian Stablecoin (BOBC)
+- Collateral type: WETH
+- Fixed rate: 1 USD = 7 BOB
+- Minimum collateralization: 200%
+- Features:
+  - Claim WETH from faucet
+  - Deposit/withdraw collateral
+  - Mint/burn BOBC
+  - Monitor health factor
+  - Liquidate positions
+
+## Contract Addresses
+
+### Xocolatl (Base Mainnet)
+- XOC: `0xa411c9Aa00E020e4f88Bc19996d29c5B7ADB4ACf`
+- WETH Reserve: `0xfF69E183A863151B4152055974aa648b3165014D`
+- CBETH Reserve: `0x5c4a154690AE52844F151bcF3aA44885db3c8A58`
+- House of Coin: `0x02c531Cd9791dD3A31428B2987A82361D72F9b13`
+
+### BOBC (Base Sepolia)
+- Engine: `0xA7e9D84133936Ab2599BB8ec5B29caa9Df4A9bD1`
+- BOBC Token: `0x947eA44Bd6560476819a91F2a5DBf030C43dee26`
+- WETH: `0xec915716AE8cC0359A88c24E214792f6A12c192b`
+- Faucet: `0x2AB5d7A0009b0409A422587A6B0ff18f40a8Cec6`
+
+## Example Commands
+
+### Xocolatl (Base Mainnet)
+```
+deposit 0.0001 WETH as collateral in XOC protocol
+mint 1 XOC using WETH collateral
+show my XOC collateral info
+```
+
+### BOBC (Base Sepolia)
+```
+claim 0.1 WETH from faucet
+deposit 0.1 WETH as collateral in BOBC protocol
+mint 50 BOBC
+show my health factor
+```
 
 ## Features
 
@@ -68,43 +123,6 @@ Choose your mode:
 1. Chat mode - Interactive console chat
 2. Telegram mode - Telegram bot interface
 3. Auto mode - Autonomous operation
-
-### Example Commands
-
-1. Wrap ETH to WETH:
-```
-wrap 0.0001 ETH to WETH
-```
-
-2. Deposit WETH as collateral:
-```
-deposit 0.0001 WETH as collateral in the XOC protocol
-```
-
-3. Mint XOC:
-```
-mint 1 XOC using my WETH collateral
-```
-
-4. Check collateral info:
-```
-show my collateral information
-```
-
-## Contract Addresses (Base Mainnet)
-
-### Core Protocol
-- XOC Token: `0xa411c9Aa00E020e4f88Bc19996d29c5B7ADB4ACf`
-- WETH: `0x4200000000000000000000000000000000000006`
-- CBETH: `0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22`
-
-### Houses of Reserve
-- WETH Reserve: `0xfF69E183A863151B4152055974aa648b3165014D`
-- CBETH Reserve: `0x5c4a154690AE52844F151bcF3aA44885db3c8A58`
-
-### Other Components
-- House of Coin: `0x02c531Cd9791dD3A31428B2987A82361D72F9b13`
-- Account Liquidator: `0x4b75Fb5B0D323672fc6Eac5Afbf487AE4c2ff6de`
 
 ## Safety Features
 
