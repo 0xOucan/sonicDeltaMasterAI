@@ -1,11 +1,8 @@
 import {
   AgentKit,
-  CdpWalletProvider,
   wethActionProvider,
   walletActionProvider,
   erc20ActionProvider,
-  cdpApiActionProvider,
-  cdpWalletActionProvider,
   pythActionProvider,
   Network,
   ViemWalletProvider,
@@ -21,12 +18,11 @@ import * as fs from "fs";
 import * as readline from "readline";
 import { TelegramInterface } from "./telegram-interface";
 import "reflect-metadata";
-import { xocolatlActionProvider } from "./action-providers/xocolatl";
-import { bobcProtocolActionProvider } from "./action-providers/bobc-protocol";
 import { createPublicClient, http } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
+import { sonic } from 'viem/chains';
 import { privateKeyToAccount } from "viem/accounts";
 import { createWalletClient } from "viem";
+import { sWrapperActionProvider } from "./action-providers/swrapper";
 
 dotenv.config();
 
@@ -41,8 +37,6 @@ function validateEnvironment(): void {
 
   const requiredVars = [
     "OPENAI_API_KEY",
-    "NETWORK_ID",
-    "NETWORK_ID_2",
     "WALLET_PRIVATE_KEY"
   ];
   
@@ -60,63 +54,16 @@ function validateEnvironment(): void {
     process.exit(1);
   }
 
-  // Validate network IDs
-  const validNetworks = {
-    NETWORK_ID: ["base-sepolia"],
-    NETWORK_ID_2: ["base-mainnet", "base"] // Allow both forms
-  };
-
-  if (!validNetworks.NETWORK_ID.includes(process.env.NETWORK_ID!)) {
-    console.error(`Error: NETWORK_ID must be: base-sepolia`);
-    process.exit(1);
-  }
-
-  if (!validNetworks.NETWORK_ID_2.includes(process.env.NETWORK_ID_2!)) {
-    console.error(`Error: NETWORK_ID_2 must be: base-mainnet or base`);
-    process.exit(1);
-  }
-
   console.log("Environment validated successfully");
-  console.log(`Primary Network (Testnet): ${process.env.NETWORK_ID}`);
-  console.log(`Secondary Network (Mainnet): ${process.env.NETWORK_ID_2}`);
 }
 
 // Add this right after imports and before any other code
 validateEnvironment();
 
-// Add this right after the validateEnvironment() call
 console.log("Environment validated successfully");
-console.log("Network ID:", process.env.NETWORK_ID || "base-sepolia");
-
-async function selectNetwork(): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  console.log("\nSelect network:");
-  console.log("1. Base Sepolia (Testnet)");
-  console.log("2. Base (Mainnet)");
-
-  const answer = await new Promise<string>((resolve) => {
-    rl.question("Enter your choice (1 or 2): ", resolve);
-  });
-  
-  rl.close();
-
-  switch (answer.trim()) {
-    case "1":
-      return "base-sepolia";
-    case "2":
-      return "base-mainnet";
-    default:
-      console.log("Invalid choice, defaulting to Base Sepolia");
-      return "base-sepolia";
-  }
-}
 
 /**
- * Initialize the agent with CDP Agentkit
+ * Initialize the agent with AgentKit
  *
  * @returns Agent executor and config
  */
@@ -124,16 +71,15 @@ async function initializeAgent() {
   try {
     console.log("Initializing agent...");
 
-    const selectedNetwork = await selectNetwork();
-    console.log(`Selected network: ${selectedNetwork}`);
-
     const privateKey = process.env.WALLET_PRIVATE_KEY;
 
     if (!privateKey) {
       throw new Error("Wallet private key not found in environment variables");
     }
 
-    const selectedChain = selectedNetwork === "base-mainnet" ? base : baseSepolia;
+    // Use Sonic chain
+    const selectedChain = sonic;
+    console.log(`Using Sonic blockchain - Chain ID: ${selectedChain.id}`);
 
     // Create Viem account and client
     const account = privateKeyToAccount(privateKey as `0x${string}`);
@@ -157,13 +103,13 @@ async function initializeAgent() {
 
     // Initialize LLM
     const llm = new ChatOpenAI({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o-mini",
       temperature: 0,
     });
 
     console.log("LLM initialized");
 
-    // Initialize AgentKit with only Xocolatl for now
+    // Initialize AgentKit with basic action providers
     const agentkit = await AgentKit.from({
       walletProvider,
       actionProviders: [
@@ -171,15 +117,14 @@ async function initializeAgent() {
         pythActionProvider(),
         walletActionProvider(),
         erc20ActionProvider(),
-        xocolatlActionProvider(),
-        bobcProtocolActionProvider(),
+        sWrapperActionProvider(),
       ],
     });
 
     const tools = await getLangChainTools(agentkit);
     const memory = new MemorySaver();
     const agentConfig = {
-      configurable: { thread_id: "CDP AgentKit Chatbot Example!" },
+      configurable: { thread_id: "Sonic Blockchain Chatbot" },
     };
 
     const agent = createReactAgent({
@@ -190,67 +135,22 @@ async function initializeAgent() {
         You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are 
         empowered to interact onchain using your tools. 
         
-        Current Network: ${selectedNetwork === "base-mainnet" ? "Base Mainnet" : "Base Sepolia Testnet"}
+        Current Network: Sonic Blockchain (Chain ID: 146)
         
-        Available Protocols:
-
-        1. Xocolatl (XOC) - Mexican Peso Stablecoin on Base Mainnet:
-        Core Features:
-        - Transfer and approve XOC tokens
-        - Check XOC balances
-        - Deposit/withdraw collateral (WETH, CBETH)
-        - Mint XOC using collateral
-        - Liquidate undercollateralized positions
-
-        Alux Lending Protocol Integration:
-        - Supply XOC to earn yield
-        - Supply WETH as collateral
-        - Borrow XOC against WETH collateral
-        - Repay borrowed XOC
-        - Withdraw supplied assets
-
-        2. BOBC Protocol - Bolivian Stablecoin on Base Sepolia:
-        - Claim WETH from faucet (testnet only)
-        - Deposit/withdraw WETH collateral
-        - Mint/burn BOBC
-        - Monitor health factor
-        - Liquidate positions
-        - Fixed rate: 1 USD = 7 BOB
-        - Minimum 200% collateralization
-
-        Important:
-        - Xocolatl only works on Base Mainnet
-        - BOBC only works on Base Sepolia
-        - Check network before operations
-        - Verify balances and allowances
-        - Monitor collateral ratios
-
-        Alux Protocol Operations Guide:
-        1. To Supply XOC:
-           - First approve XOC for Alux (0x7a8AE9bB9080670e2BAFb6Df3EA62968F4Ad8a88)
-           - Then supply XOC to earn yield
-
-        2. To Use WETH as Collateral:
-           - First approve WETH for Alux
-           - Supply WETH as collateral
-           - Borrow XOC against your WETH
-           - Repay XOC when needed
-           - Withdraw WETH when done
-
-        Example Commands:
-        XOC Operations:
-        - "approve 100 XOC for Alux protocol"
-        - "supply 100 XOC to Alux protocol"
-        - "withdraw 50 XOC from Alux protocol"
-
-        WETH Operations:
-        - "approve 0.1 WETH for Alux protocol"
-        - "supply 0.1 WETH as collateral to Alux"
-        - "borrow 50 XOC from Alux with variable rate"
-        - "repay 50 XOC to Alux with variable rate"
-        - "withdraw 0.1 WETH from Alux protocol"
-
-        Get the wallet details first to see what network you're on and what tokens are available.
+        Available Features:
+        - Check wallet balances and network status
+        - Transfer tokens
+        - Interact with basic ERC20 functionality
+        - Wrap and unwrap S (Sonic) tokens to wS tokens
+        - More Sonic-specific features coming soon!
+        
+        S Token Wrapping Features:
+        - Wrap native S tokens to wS tokens
+        - Unwrap wS tokens back to native S tokens
+        - Transfer wS tokens
+        - Check S and wS balances
+        
+        Get the wallet details first to see what tokens are available.
       `,
     });
 

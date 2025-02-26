@@ -1,35 +1,10 @@
-# AgentKit Multi-Protocol Chatbot
+# Sonic Blockchain Chatbot
 
-This chatbot demonstrates integration with multiple DeFi protocols across Base networks:
+A versatile chatbot for interacting with Sonic blockchain, demonstrating integration with common blockchain features and protocols.
 
-## Supported Protocols
+## Networks
 
-### Xocolatl Protocol (Base Mainnet)
-- Mexican Peso Stablecoin (XOC)
-- Collateral types: WETH, CBETH
-- LTV: 80%, Liquidation threshold: 85%
-- Features:
-  - Deposit/withdraw collateral
-  - Mint/burn XOC
-  - Transfer tokens
-  - Monitor positions
-  - Integration with Alux lending pool
-    - Supply WETH as collateral
-    - Borrow XOC with variable/stable rate
-    - Repay XOC loans
-    - Withdraw collateral
-
-### BOBC Protocol (Base Sepolia)
-- Bolivian Stablecoin (BOBC)
-- Collateral type: WETH
-- Fixed rate: 1 USD = 7 BOB
-- Minimum collateralization: 200%
-- Features:
-  - Claim WETH from faucet
-  - Deposit/withdraw collateral
-  - Mint/burn BOBC
-  - Monitor health factor
-  - Liquidate positions
+- Sonic Blockchain (Chain ID: 146)
 
 ## Operating Modes
 
@@ -39,63 +14,45 @@ The chatbot supports three operating modes:
 2. **Autonomous Mode**: Bot operates independently, executing transactions at set intervals
 3. **Telegram Mode**: Interface through Telegram messenger
 
-## Network Support
-
-- Base Mainnet
-- Base Sepolia (Testnet)
-- Network selection at startup
-- Automatic network validation before transactions
-
-## Core Features
+## Current Features
 
 ### Token Operations
 - Check token balances
 - Transfer tokens
 - Approve token spending
-- Wrap/unwrap ETH to WETH
+- Basic ERC20 token interactions
 
-### Lending Operations
-- Supply collateral
-- Borrow assets
-- Repay loans
-- Withdraw collateral
-- Monitor positions
-- View collateralization ratios
+### Wallet Operations
+- Check wallet status
+- View transaction history
+- Get blockchain data
 
-### Safety Features
-- Network validation before transactions
-- Balance and allowance checks
-- Collateralization ratio monitoring
-- Detailed error messages
-- Transaction confirmation waiting
-- Custom error handling for common scenarios
+## Upcoming Features
 
-## Error Handling
+We are actively working on Sonic-specific features that will be added in the near future:
 
-The chatbot handles various error scenarios:
-- Insufficient balances
-- Insufficient allowances
-- Undercollateralized positions
-- Network mismatches
-- Failed transactions
-- Invalid input validation
+- [ ] Sonic token swapping
+- [ ] Integration with Sonic-native DeFi protocols
+- [ ] Sonic-specific NFT operations
+- [ ] Custom actions for Sonic ecosystem
 
 ## Development
 
 To add new features or modify existing ones:
-1. Update the relevant action provider in `src/action-providers/`
+1. Create a new action provider in `src/action-providers/`
 2. Add new schemas if needed
 3. Update the constants and error handlers
-4. Test thoroughly on testnet first
+4. Test thoroughly
+
+> Note: The Xocolatl and BOBC protocol action providers are kept in the project as reference for creating new Sonic-specific actions. They are not currently used in the chatbot.
 
 ## Environment Setup
 
 Required environment variables:
 ```
 OPENAI_API_KEY=your_openai_api_key_here
-NETWORK_ID=your_network_id_here
-NETWORK_ID_2=your_secondary_network_id_here
 WALLET_PRIVATE_KEY=your_wallet_private_key_here
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here (optional, only for Telegram mode)
 ```
 
 ## License
