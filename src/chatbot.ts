@@ -23,6 +23,7 @@ import { sonic } from 'viem/chains';
 import { privateKeyToAccount } from "viem/accounts";
 import { createWalletClient } from "viem";
 import { sWrapperActionProvider } from "./action-providers/swrapper";
+import { wsSwapXBeefyActionProvider } from "./action-providers/wsswapx-beefy";
 
 dotenv.config();
 
@@ -110,15 +111,18 @@ async function initializeAgent() {
     console.log("LLM initialized");
 
     // Initialize AgentKit with basic action providers
+    const providers = [
+      wethActionProvider(),
+      pythActionProvider(),
+      walletActionProvider(),
+      erc20ActionProvider(),
+      sWrapperActionProvider(),
+      wsSwapXBeefyActionProvider(),
+    ];
+
     const agentkit = await AgentKit.from({
       walletProvider,
-      actionProviders: [
-        wethActionProvider(),
-        pythActionProvider(),
-        walletActionProvider(),
-        erc20ActionProvider(),
-        sWrapperActionProvider(),
-      ],
+      actionProviders: providers,
     });
 
     const tools = await getLangChainTools(agentkit);
