@@ -16,6 +16,9 @@ A versatile chatbot for interacting with the Sonic blockchain, featuring advance
   * Wrap S tokens to wS for DeFi compatibility
   * Unwrap wS back to S tokens
   * Check S/wS balances
+- Token Swaps
+  * Swap S for USDC.e
+  * Swap USDC.e for S
 - Transfer tokens
 - Approve token spending
 - Basic ERC20 token interactions
@@ -65,29 +68,17 @@ Unwrap wS to S:
 unwrap 1.0 wS
 ```
 
+Swap S for USDC.e:
+```
+swap s for usdc 1.0
+```
+
+Swap USDC.e for S:
+```
+swap usdc for s 1.0
+```
+
 ## Environment Setup
 
 Required environment variables:
 ```
-OPENAI_API_KEY=your_openai_api_key_here
-WALLET_PRIVATE_KEY=your_wallet_private_key_here
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here (optional)
-```
-
-## Getting Started
-
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Copy `.env.example` to `.env` and fill in your credentials
-4. Start the chatbot: `npm start`
-
-## Sonic Blockchain Specifics
-
-- Native Token: S
-- Wrapped Token: wS
-- Chain ID: 146
-- Block Explorer: https://sonicscan.org
-
-## License
-
-MIT License

@@ -25,6 +25,8 @@ import { createWalletClient } from "viem";
 import { strategyManagerActionProvider } from "./action-providers/strategy-manager";
 import { sWrapperActionProvider } from "./action-providers/swrapper";
 import { wsSwapXBeefyActionProvider } from "./action-providers/wsswapx-beefy";
+import { wagmiSwapActionProvider } from "./action-providers/swap-s-usdc.e-wagmidex";
+import { actionProviders } from "./action-providers";
 
 dotenv.config();
 
@@ -73,35 +75,24 @@ async function initializeAgent() {
   try {
     console.log("Initializing agent...");
 
+    // Get private key from environment
     const privateKey = process.env.WALLET_PRIVATE_KEY;
-
     if (!privateKey) {
-      throw new Error("Wallet private key not found in environment variables");
+      throw new Error("WALLET_PRIVATE_KEY not found in environment");
     }
 
-    // Use Sonic chain
-    const selectedChain = sonic;
-    console.log(`Using Sonic blockchain - Chain ID: ${selectedChain.id}`);
-
-    // Create Viem account and client
+    // Create account from private key
     const account = privateKeyToAccount(privateKey as `0x${string}`);
     
-    const transport = http(selectedChain.rpcUrls.default.http[0], {
-      batch: true,
-      fetchOptions: {},
-      retryCount: 3,
-      retryDelay: 100,
-      timeout: 30_000,
-    });
-
-    const client = createWalletClient({
+    // Create wallet client
+    const walletClient = createWalletClient({
       account,
-      chain: selectedChain,
-      transport,
+      chain: sonic,
+      transport: http()
     });
 
-    // Create Viem wallet provider
-    const walletProvider = new ViemWalletProvider(client);
+    // Use ViemWalletProvider
+    const walletProvider = new ViemWalletProvider(walletClient);
 
     // Initialize LLM
     const llm = new ChatOpenAI({
@@ -111,16 +102,10 @@ async function initializeAgent() {
 
     console.log("LLM initialized");
 
-    // Initialize AgentKit with basic action providers
-    const providers = [
-      strategyManagerActionProvider(),
-      sWrapperActionProvider(),
-      wsSwapXBeefyActionProvider(),
-    ];
-
+    // Initialize AgentKit with ALL action providers
     const agentkit = await AgentKit.from({
       walletProvider,
-      actionProviders: providers,
+      actionProviders, // Use the imported actionProviders array
     });
 
     const tools = await getLangChainTools(agentkit);
