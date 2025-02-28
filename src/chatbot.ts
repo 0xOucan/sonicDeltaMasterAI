@@ -22,6 +22,7 @@ import { createPublicClient, http } from 'viem';
 import { sonic } from 'viem/chains';
 import { privateKeyToAccount } from "viem/accounts";
 import { createWalletClient } from "viem";
+import { strategyManagerActionProvider } from "./action-providers/strategy-manager";
 import { sWrapperActionProvider } from "./action-providers/swrapper";
 import { wsSwapXBeefyActionProvider } from "./action-providers/wsswapx-beefy";
 
@@ -112,10 +113,7 @@ async function initializeAgent() {
 
     // Initialize AgentKit with basic action providers
     const providers = [
-      wethActionProvider(),
-      pythActionProvider(),
-      walletActionProvider(),
-      erc20ActionProvider(),
+      strategyManagerActionProvider(),
       sWrapperActionProvider(),
       wsSwapXBeefyActionProvider(),
     ];
