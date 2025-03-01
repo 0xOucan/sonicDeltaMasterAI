@@ -25,6 +25,7 @@ import { createWalletClient } from "viem";
 import { strategyManagerActionProvider } from "./action-providers/strategy-manager";
 import { sWrapperActionProvider } from "./action-providers/swrapper";
 import { wsSwapXBeefyActionProvider } from "./action-providers/wsswapx-beefy";
+import { BalanceCheckerActionProvider } from "./action-providers/balance-checker";
 
 dotenv.config();
 
@@ -266,39 +267,66 @@ async function runTelegramMode(agent: any, config: any) {
   });
 }
 
-/**
- * Choose whether to run in autonomous, chat, or telegram mode
- */
-async function chooseMode(): Promise<"chat" | "auto" | "telegram"> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  const question = (prompt: string): Promise<string> =>
-    new Promise((resolve) => rl.question(prompt, resolve));
-
-  while (true) {
-    console.log("\nAvailable modes:");
-    console.log("1. chat      - Interactive chat mode");
-    console.log("2. telegram  - Telegram bot mode");
-    console.log("3. auto      - Autonomous action mode");
-
-    const choice = (await question("\nChoose a mode (enter number or name): "))
-      .toLowerCase()
-      .trim();
-
-    rl.close();
-
-    if (choice === "1" || choice === "chat") {
-      return "chat";
-    } else if (choice === "2" || choice === "telegram") {
-      return "telegram";
-    } else if (choice === "3" || choice === "auto") {
-      return "auto";
-    }
-    console.log("Invalid choice. Please try again.");
+async function simulateUserTyping(text: string, delay = 50): Promise<void> {
+  process.stdout.write("\nPrompt: ");
+  for (const char of text) {
+    process.stdout.write(char);
+    await new Promise(resolve => setTimeout(resolve, delay));
   }
+  process.stdout.write("\n\n");
+}
+
+async function demoMode(agent: AgentKit) {
+  console.log("\nStarting Demo Mode...");
+  console.log("This demo will showcase the main features of the Sonic DeFi Agent");
+  console.log("Press Enter to start the demo...");
+  
+  await new Promise(resolve => readline.createInterface(process.stdin).question("", resolve));
+
+  const demoSteps = [
+    {
+      action: "check balance",
+      description: "First, let's check our wallet balances"
+    },
+    {
+      action: "wrap 1.0 S",
+      description: "Now, let's wrap 1 S token to wS"
+    },
+    {
+      action: "check balance",
+      description: "Let's verify our wrapped tokens"
+    },
+    {
+      action: "execute full wS swapx beefy strategy with 1.0 wS",
+      description: "Let's deposit our wS tokens into the SwapX Beefy strategy"
+    },
+    {
+      action: "check balance",
+      description: "Finally, let's check our updated balances"
+    }
+  ];
+
+  for (const step of demoSteps) {
+    console.log("\n-------------------");
+    console.log(`\nDemo Step: ${step.description}`);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    await simulateUserTyping(step.action);
+    
+    try {
+      const response = await agent.stream(step.action);
+      console.log("-------------------");
+      console.log(response);
+    } catch (error) {
+      console.error("Error in demo step:", error);
+    }
+    
+    // Wait between steps
+    await new Promise(resolve => setTimeout(resolve, 3000));
+  }
+
+  console.log("\nDemo completed! You can now try these actions yourself.");
+  process.exit(0);
 }
 
 /**
@@ -310,20 +338,47 @@ async function main() {
     const { agent, config } = await initializeAgent();
     console.log("Agent initialized successfully");
 
-    while (true) {
-      const mode = await chooseMode();
-      console.log(`Selected mode: ${mode}`);
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
 
-      if (mode === "chat") {
+    console.log("\nAvailable modes:");
+    console.log("1. chat      - Interactive chat mode");
+    console.log("2. telegram  - Telegram bot mode");
+    console.log("3. auto      - Autonomous action mode");
+    console.log("4. demo      - Demo mode with preset actions");
+
+    const mode = await new Promise<string>(resolve => {
+      rl.question("\nChoose a mode (enter number or name): ", resolve);
+    });
+
+    rl.close();
+
+    switch (mode.toLowerCase()) {
+      case "1":
+      case "chat":
+        console.log("Selected mode: chat");
         await runChatMode(agent, config);
-      } else if (mode === "telegram") {
+        break;
+      case "2":
+      case "telegram":
+        console.log("Selected mode: telegram");
         await runTelegramMode(agent, config);
-      } else {
+        break;
+      case "3":
+      case "auto":
+        console.log("Selected mode: auto");
         await runAutonomousMode(agent, config);
-      }
-
-      // After any mode exits, we'll loop back to mode selection
-      console.log("\nReturning to mode selection...");
+        break;
+      case "4":
+      case "demo":
+        console.log("Selected mode: demo");
+        await demoMode(agent);
+        break;
+      default:
+        console.log("Invalid mode selected");
+        process.exit(1);
     }
   } catch (error) {
     if (error instanceof Error) {
