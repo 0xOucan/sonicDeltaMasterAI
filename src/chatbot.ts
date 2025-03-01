@@ -25,6 +25,8 @@ import { createWalletClient } from "viem";
 import { strategyManagerActionProvider } from "./action-providers/strategy-manager";
 import { sWrapperActionProvider } from "./action-providers/swrapper";
 import { wsSwapXBeefyActionProvider } from "./action-providers/wsswapx-beefy";
+import { BalanceCheckerActionProvider } from "./action-providers/balance-checker";
+import { wsUsdcBeefyActionProvider } from "./action-providers/ws-usdc-beefy";
 
 dotenv.config();
 
@@ -116,6 +118,8 @@ async function initializeAgent() {
       strategyManagerActionProvider(),
       sWrapperActionProvider(),
       wsSwapXBeefyActionProvider(),
+      new BalanceCheckerActionProvider(),
+      wsUsdcBeefyActionProvider(),
     ];
 
     const agentkit = await AgentKit.from({
@@ -144,6 +148,7 @@ async function initializeAgent() {
         - Transfer tokens
         - Interact with basic ERC20 functionality
         - Wrap and unwrap S (Sonic) tokens to wS tokens
+        - Check S, wS and USDC.e balances in your connected wallet
         - More Sonic-specific features coming soon!
         
         S Token Wrapping Features:
@@ -151,6 +156,11 @@ async function initializeAgent() {
         - Unwrap wS tokens back to native S tokens
         - Transfer wS tokens
         - Check S and wS balances
+        
+        Balance Checking Features:
+        - Check native S balance
+        - Check wS token balance
+        - Check USDC.e balance
         
         Get the wallet details first to see what tokens are available.
       `,

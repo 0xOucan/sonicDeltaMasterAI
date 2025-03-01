@@ -27,6 +27,13 @@ export class StrategyManagerActionProvider extends ActionProvider<EvmWalletProvi
      * Sufficient wS tokens
      * Gas for 4 transactions
 
+2. wS-USDC.e Uniswap Beefy Strategy
+   - Description: Deposit USDC.e into Uniswap wS-USDC.e pool and stake LP tokens in Beefy
+   - Usage: "provide 1 USDC.e to the uniswap beefy wS USDC.e vault strategy"
+   - Requirements:
+     * Sufficient USDC.e tokens
+     * Gas for 2 transactions
+
 Basic Token Operations:
 - Wrap S to wS: "wrap 1.0 S"
 - Unwrap wS to S: "unwrap 1.0 wS"
