@@ -1,11 +1,8 @@
 import {
   AgentKit,
-  wethActionProvider,
-  walletActionProvider,
-  erc20ActionProvider,
-  pythActionProvider,
+  ActionProvider,
   Network,
-  ViemWalletProvider,
+  ViemWalletProvider as WalletProvider,
 } from "@coinbase/agentkit";
 
 import { getLangChainTools } from "@coinbase/agentkit-langchain";
@@ -65,12 +62,24 @@ validateEnvironment();
 
 console.log("Environment validated successfully");
 
+// Add these types
+type Agent = {
+  invoke: (input: string, config?: AgentConfig) => Promise<string>;
+  walletProvider: WalletProvider;
+  actionProviders: ActionProvider<WalletProvider>[];
+  getActions: () => any[];
+};
+
+type AgentConfig = {
+  configurable: { thread_id: string };
+};
+
 /**
  * Initialize the agent with AgentKit
  *
  * @returns Agent executor and config
  */
-async function initializeAgent() {
+async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }> {
   try {
     console.log("Initializing agent...");
 
@@ -102,7 +111,7 @@ async function initializeAgent() {
     });
 
     // Create Viem wallet provider
-    const walletProvider = new ViemWalletProvider(client);
+    const walletProvider = new WalletProvider(client);
 
     // Initialize LLM
     const llm = new ChatOpenAI({
@@ -117,6 +126,7 @@ async function initializeAgent() {
       strategyManagerActionProvider(),
       sWrapperActionProvider(),
       wsSwapXBeefyActionProvider(),
+      new BalanceCheckerActionProvider(),
     ];
 
     const agentkit = await AgentKit.from({
@@ -127,16 +137,16 @@ async function initializeAgent() {
     const tools = await getLangChainTools(agentkit);
     const memory = new MemorySaver();
     const agentConfig = {
-      configurable: { thread_id: "Sonic Blockchain Chatbot" },
+      configurable: { thread_id: "Sonic-Blockchain-Chatbot" }
     };
 
-    const agent = createReactAgent({
+    const reactAgent = await createReactAgent({
       llm,
       tools,
       checkpointSaver: memory,
       messageModifier: `
-        You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit. You are 
-        empowered to interact onchain using your tools. 
+        You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit.
+        You are empowered to interact onchain using your tools.
         
         Current Network: Sonic Blockchain (Chain ID: 146)
         
@@ -145,7 +155,7 @@ async function initializeAgent() {
         - Transfer tokens
         - Interact with basic ERC20 functionality
         - Wrap and unwrap S (Sonic) tokens to wS tokens
-        - More Sonic-specific features coming soon!
+        - Check S, wS and USDC.e balances in your connected wallet
         
         S Token Wrapping Features:
         - Wrap native S tokens to wS tokens
@@ -157,8 +167,21 @@ async function initializeAgent() {
       `,
     });
 
-    console.log("Agent initialization complete");
-    return { agent, config: agentConfig };
+    return { 
+      agent: {
+        invoke: async (input: string, config?: AgentConfig) => {
+          const result = await reactAgent.invoke(
+            { messages: [new HumanMessage(input)] },
+            config || agentConfig
+          );
+          return result.messages[result.messages.length - 1].content as string;
+        },
+        walletProvider,
+        actionProviders: providers,
+        getActions: () => tools
+      },
+      config: agentConfig 
+    };
   } catch (error) {
     console.error("Failed to initialize agent:", error);
     throw error;
@@ -168,7 +191,7 @@ async function initializeAgent() {
 /**
  * Run the agent autonomously with specified intervals
  */
-async function runAutonomousMode(agent: any, config: any, interval = 10) {
+async function runAutonomousMode(agent: Agent, config: AgentConfig, interval = 10) {
   console.log("Starting autonomous mode...");
 
   while (true) {
@@ -177,19 +200,8 @@ async function runAutonomousMode(agent: any, config: any, interval = 10) {
         "Be creative and do something interesting on the blockchain. " +
         "Choose an action or set of actions and execute it that highlights your abilities.";
 
-      const stream = await agent.stream(
-        { messages: [new HumanMessage(thought)] },
-        config,
-      );
-
-      for await (const chunk of stream) {
-        if ("agent" in chunk) {
-          console.log(chunk.agent.messages[0].content);
-        } else if ("tools" in chunk) {
-          console.log(chunk.tools.messages[0].content);
-        }
-        console.log("-------------------");
-      }
+      const stream = await agent.invoke(thought);
+      console.log(stream);
 
       await new Promise((resolve) => setTimeout(resolve, interval * 1000));
     } catch (error) {
@@ -204,7 +216,7 @@ async function runAutonomousMode(agent: any, config: any, interval = 10) {
 /**
  * Run the agent interactively based on user input
  */
-async function runChatMode(agent: any, config: any) {
+async function runChatMode(agent: Agent, config: AgentConfig) {
   console.log("Starting chat mode... Type 'exit' to end.");
 
   const rl = readline.createInterface({
@@ -223,19 +235,8 @@ async function runChatMode(agent: any, config: any) {
         break;
       }
 
-      const stream = await agent.stream(
-        { messages: [new HumanMessage(userInput)] },
-        config,
-      );
-
-      for await (const chunk of stream) {
-        if ("agent" in chunk) {
-          console.log(chunk.agent.messages[0].content);
-        } else if ("tools" in chunk) {
-          console.log(chunk.tools.messages[0].content);
-        }
-        console.log("-------------------");
-      }
+      const response = await agent.invoke(userInput, config);
+      console.log(response);
     }
   } catch (error) {
     if (error instanceof Error) {
@@ -250,7 +251,7 @@ async function runChatMode(agent: any, config: any) {
 /**
  * Run the Telegram interface mode
  */
-async function runTelegramMode(agent: any, config: any) {
+async function runTelegramMode(agent: Agent, config: AgentConfig) {
   console.log("Starting Telegram mode... Waiting for /start command");
 
   return new Promise<void>((resolve) => {
@@ -276,10 +277,14 @@ async function simulateUserTyping(text: string, delay = 50): Promise<void> {
   process.stdout.write("\n\n");
 }
 
-async function demoMode(agent: AgentKit) {
+async function demoMode(agent: Agent) {
   console.log("\nStarting Demo Mode...");
   console.log("This demo will showcase the main features of the Sonic DeFi Agent");
   console.log("Press Enter to start the demo...");
+  
+  const demoConfig = {
+    configurable: { thread_id: "demo-session" }
+  };
   
   await new Promise(resolve => readline.createInterface(process.stdin).question("", resolve));
 
@@ -298,7 +303,8 @@ async function demoMode(agent: AgentKit) {
     },
     {
       action: "execute full wS swapx beefy strategy with 1.0 wS",
-      description: "Let's deposit our wS tokens into the SwapX Beefy strategy"
+      description: "Let's deposit our wS tokens into the SwapX Beefy strategy",
+      delay: 10000 // Longer delay for complex transaction
     },
     {
       action: "check balance",
@@ -314,14 +320,13 @@ async function demoMode(agent: AgentKit) {
     await simulateUserTyping(step.action);
     
     try {
-      const response = await agent.stream(step.action);
+      const response = await agent.invoke(step.action, demoConfig);
       console.log("-------------------");
       console.log(response);
     } catch (error) {
       console.error("Error in demo step:", error);
     }
     
-    // Wait between steps
     await new Promise(resolve => setTimeout(resolve, 3000));
   }
 

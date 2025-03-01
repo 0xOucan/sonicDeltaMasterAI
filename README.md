@@ -4,32 +4,43 @@ A versatile chatbot for interacting with the Sonic blockchain, featuring advance
 
 ## Current Features
 
+### Interactive Modes
+- **Chat Mode**: Interactive conversation with the AI assistant
+- **Telegram Mode**: Interact with the assistant through Telegram
+- **Demo Mode**: Guided demonstration of key features
+- **Auto Mode**: Autonomous execution of strategies
+
 ### DeFi Strategies
-- wS-SwapX-Beefy Strategy
+- **wS-SwapX-Beefy Strategy**
+  * Pre-checks token balances for strategy eligibility
   * Deposit wS into SwapX vault
   * Receive LP tokens
   * Stake LP tokens in Beefy vault
   * Earn additional rewards
+  * Detailed transaction links to SonicScan
 
 ### Token Operations
-- Native S to wS wrapping
+- **Native S to wS wrapping**
   * Wrap S tokens to wS for DeFi compatibility
   * Unwrap wS back to S tokens
   * Check S/wS balances
-- Transfer tokens
-- Approve token spending
-- Basic ERC20 token interactions
+- **Transfer tokens**
+- **Approve token spending**
+- **Basic ERC20 token interactions**
 
 ### Wallet Operations
-- Check wallet status
-- View transaction history
-- Get blockchain data
+- **Balance Checker**
+  * View native S balance
+  * Check wS, USDC.e and other token balances
+  * Balance verification before transactions
+- **Transaction tracking**
+- **Blockchain data queries**
 
 ## Upcoming Features
 
 We are actively developing and expanding Sonic-specific features:
 
-- [ ] Wallet balance scanner for strategy eligibility
+- [x] Wallet balance scanner for strategy eligibility
 - [ ] Additional DeFi strategies
 - [ ] Strategy performance tracking
 - [ ] Auto-compound features
@@ -65,6 +76,30 @@ Unwrap wS to S:
 unwrap 1.0 wS
 ```
 
+Check your balances:
+```
+check balance
+```
+
+## Demo Mode
+
+Run a guided demo showcasing key features:
+```
+Choose mode: demo
+```
+
+In Telegram, use:
+```
+/demo
+```
+
+The demo will:
+1. Check wallet balances
+2. Wrap S to wS
+3. Verify the wrapped tokens
+4. Execute the SwapX-Beefy strategy
+5. Check updated balances
+
 ## Environment Setup
 
 Required environment variables:
@@ -79,7 +114,8 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here (optional)
 1. Clone the repository
 2. Install dependencies: `npm install`
 3. Copy `.env.example` to `.env` and fill in your credentials
-4. Start the chatbot: `npm start`
+4. Build the project: `npm run build`
+5. Start the chatbot: `npm start`
 
 ## Sonic Blockchain Specifics
 

@@ -1,6 +1,7 @@
 export const SWAPX_VAULT_ADDRESS = "0x5F62d612c69fF7BE3FBd9a0cD530D57bCbC7b642";
 export const BEEFY_VAULT_ADDRESS = "0x816d2AEAff13dd1eF3a4A2e16eE6cA4B9e50DDD8";
 export const WS_TOKEN_ADDRESS = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
+export const SWAPX_LP_TOKEN_ADDRESS = "0x5F62d612c69fF7BE3FBd9a0cD530D57bCbC7b642";
 
 export const SWAPX_VAULT_ABI = [
   {
@@ -35,11 +36,11 @@ export const SWAPX_VAULT_ABI = [
 
 export const BEEFY_VAULT_ABI = [
   {
-    inputs: [{ name: "_amount", type: "uint256" }],
     name: "deposit",
-    outputs: [],
-    stateMutability: "nonpayable",
     type: "function",
+    inputs: [{ name: "amount", type: "uint256" }],
+    outputs: [],
+    stateMutability: "nonpayable"
   },
   {
     inputs: [],
@@ -57,5 +58,35 @@ export const BEEFY_VAULT_ABI = [
     outputs: [{ type: "bool" }],
     stateMutability: "nonpayable",
     type: "function",
+  }
+] as const;
+
+export const ERC20_ABI = [
+  {
+    name: "approve",
+    type: "function",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" }
+    ],
+    outputs: [{ type: "bool" }],
+    stateMutability: "nonpayable"
+  },
+  {
+    name: "balanceOf",
+    type: "function",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "balance", type: "uint256" }],
+    stateMutability: "view"
+  },
+  {
+    name: "allowance",
+    type: "function",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" }
+    ],
+    outputs: [{ name: "remaining", type: "uint256" }],
+    stateMutability: "view"
   }
 ] as const;

@@ -64,43 +64,83 @@ export class TelegramInterface {
       }
     });
 
+    // Handle /demo command
+    this.bot.onText(/\/demo/, (msg) => this.handleDemoCommand(msg));
+
     // Handle all other messages
     this.bot.on("message", async (msg) => {
       if (msg.text && !msg.text.startsWith("/") && this.isStarted) {
-        const chatId = msg.chat.id;
-        console.log(
-          `Received message from ${msg.from?.username || msg.from?.id}: ${msg.text}`,
-        );
-
-        try {
-          await this.bot.sendChatAction(chatId, "typing");
-
-          const stream = await this.agent.stream(
-            { messages: [new HumanMessage(msg.text)] },
-            this.config,
-          );
-
-          let response = "";
-          for await (const chunk of stream) {
-            if ("agent" in chunk) {
-              response += chunk.agent.messages[0].content;
-            } else if ("tools" in chunk) {
-              response += chunk.tools.messages[0].content;
-            }
-          }
-
-          console.log(
-            `Sending response to ${msg.from?.username || msg.from?.id}: ${response}`,
-          );
-          await this.bot.sendMessage(chatId, response);
-        } catch (error) {
-          console.error("Error processing message:", error);
-          await this.bot.sendMessage(
-            chatId,
-            "Sorry, I encountered an error processing your message.",
-          );
-        }
+        this.handleMessage(msg);
       }
     });
+  }
+
+  private async handleMessage(msg: TelegramBot.Message) {
+    if (!msg.text) return;
+    
+    const chatId = msg.chat.id;
+    
+    try {
+      this.bot.sendChatAction(chatId, 'typing');
+      
+      // Use invoke instead of stream
+      const response = await this.agent.invoke(msg.text, this.config);
+      
+      // Send the response directly since we're not streaming
+      await this.bot.sendMessage(chatId, response);
+    } catch (error) {
+      console.error("Error processing message:", error);
+      await this.bot.sendMessage(
+        chatId,
+        "I encountered an error processing your request. Please try again."
+      );
+    }
+  }
+
+  private async handleDemoCommand(msg: TelegramBot.Message) {
+    const chatId = msg.chat.id;
+    const demoSteps = [
+      {
+        action: "check balance",
+        description: "First, let's check our wallet balances"
+      },
+      {
+        action: "wrap 1.0 S",
+        description: "Now, let's wrap 1 S token to wS"
+      },
+      {
+        action: "check balance",
+        description: "Let's verify our wrapped tokens"
+      },
+      {
+        action: "execute full wS swapx beefy strategy with 1.0 wS",
+        description: "Let's deposit our wS tokens into the SwapX Beefy strategy"
+      },
+      {
+        action: "check balance",
+        description: "Finally, let's check our updated balances"
+      }
+    ];
+
+    await this.bot.sendMessage(chatId, "Starting Demo Mode...\n" +
+      "This demo will showcase the main features of the Sonic DeFi Agent");
+
+    for (const step of demoSteps) {
+      await this.bot.sendMessage(chatId, `\nDemo Step: ${step.description}`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      await this.bot.sendMessage(chatId, `Executing: ${step.action}`);
+      
+      try {
+        const response = await this.agent.invoke(step.action);
+        await this.bot.sendMessage(chatId, response);
+      } catch (error) {
+        await this.bot.sendMessage(chatId, `Error in demo step: ${error}`);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+
+    await this.bot.sendMessage(chatId, "\nDemo completed! You can now try these actions yourself.");
   }
 }
