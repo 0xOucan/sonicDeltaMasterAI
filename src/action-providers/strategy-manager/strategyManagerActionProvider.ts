@@ -14,27 +14,26 @@ export class StrategyManagerActionProvider extends ActionProvider<EvmWalletProvi
 
   @CreateAction({
     name: "list-strategies",
-    description: "Display available DeFi strategies and usage examples",
+    description: "List available DeFi strategies",
     schema: z.object({}),
   })
   async listStrategies(): Promise<string> {
     return `Available DeFi Strategies:
 
 1. wS-SwapX-Beefy Strategy
-   - Description: Deposit wS into SwapX vault to receive LP tokens, then stake them in Beefy for additional rewards
-   - Usage: "execute full wS swapx beefy strategy with 1.0 wS"
-   - Requirements: 
-     * Sufficient wS tokens
-     * Gas for 4 transactions
+   - Command: execute full wS swapx beefy strategy with <amount> wS
+   - Example: execute full wS swapx beefy strategy with 1.5 wS
+   - Deposit wS tokens into SwapX vault
+   - Receive SwapX LP tokens
+   - Deposit LP tokens into Beefy vault for yield
 
-Basic Token Operations:
-- Wrap S to wS: "wrap 1.0 S"
-- Unwrap wS to S: "unwrap 1.0 wS"
-- Check balances: "check balance"
+2. USDC.e-SwapX-Beefy Strategy
+   - Command: execute usdce strategy with <amount> USDC.e
+   - Example: execute usdce strategy with 2.5 USDC.e
+   - Deposit USDC.e tokens into SwapX vault
+   - Receive SwapX LP tokens
+   - Deposit LP tokens into Beefy vault for yield
 
-More strategies coming soon!
-
-To execute a strategy, use the exact command format shown in the usage example.
 You can check your token balances first to ensure you have sufficient funds.`;
   }
 

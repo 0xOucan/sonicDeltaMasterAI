@@ -5,7 +5,7 @@ import {
   CreateAction,
   EvmWalletProvider,
 } from "@coinbase/agentkit";
-import { encodeFunctionData, createPublicClient, http, parseEther } from "viem";
+import { encodeFunctionData, createPublicClient, http, parseUnits } from "viem";
 import type { Hex } from "viem";
 import "reflect-metadata";
 import { sonic } from 'viem/chains';
@@ -13,21 +13,21 @@ import { sonic } from 'viem/chains';
 import {
   SWAPX_VAULT_ADDRESS,
   BEEFY_VAULT_ADDRESS,
-  WS_TOKEN_ADDRESS,
+  USDC_E_ADDRESS,
   SWAPX_VAULT_ABI,
   BEEFY_VAULT_ABI,
   ERC20_ABI,
 } from "./constants";
 
 import {
-  DepositWsSwapXSchema,
+  DepositUSDCeSwapXSchema,
   ApproveSwapXSchema,
   ApproveBeefySchema,
   DepositBeefySchema,
 } from "./schemas";
 
 import {
-  WSSwapXBeefyError,
+  USDCeSwapXBeefyError,
   InsufficientBalanceError,
   InsufficientAllowanceError,
 } from "./errors";
@@ -36,48 +36,37 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const EXPLORER_BASE_URL = "https://sonicscan.org/tx/";
 
-export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider> {
+const formatAmount = (amount: string): string => {
+  if (!amount.includes('.')) {
+    return amount + '.0';
+  }
+  return amount;
+};
+
+export class USDCeSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider> {
   constructor() {
-    super("wsswapx-beefy", []);
+    super("usdce-swapx-beefy", []);
   }
 
   @CreateAction({
-    name: "execute-full-ws-swapx-beefy-strategy",
-    description: "Execute the full wS SwapX Beefy strategy",
-    schema: DepositWsSwapXSchema,
+    name: "execute-usdce-strategy",
+    description: "Execute the full USDC.e SwapX Beefy strategy",
+    schema: DepositUSDCeSwapXSchema,
   })
   async executeFullStrategy(
     walletProvider: EvmWalletProvider,
-    args: z.infer<typeof DepositWsSwapXSchema>
+    args: z.infer<typeof DepositUSDCeSwapXSchema>
   ): Promise<string> {
     try {
-      // Convert human readable amount to wei
-      const amount = parseEther(args.amount);
+      const formattedAmount = formatAmount(args.amount);
+      const amount = parseUnits(formattedAmount, 6); // USDC.e has 6 decimals
       const address = await walletProvider.getAddress();
+      let response = "Executing full USDC.e SwapX Beefy strategy:\n\n";
 
-      // Get current balance
-      const publicClient = createPublicClient({
-        chain: sonic,
-        transport: http()
-      });
-
-      const currentBalance = await publicClient.readContract({
-        address: WS_TOKEN_ADDRESS as Hex,
-        abi: ERC20_ABI,
-        functionName: 'balanceOf',
-        args: [address as Hex]
-      });
-
-      if (currentBalance < amount) {
-        return `Insufficient wS balance. You have ${currentBalance.toString()} wei but need ${amount.toString()} wei`;
-      }
-
-      let response = "Executing full wS SwapX Beefy strategy:\n\n";
-      
-      // Step 1: Approve wS for SwapX
+      // Step 1: Approve USDC.e for SwapX
       try {
         const approveSwapXTx = await walletProvider.sendTransaction({
-          to: WS_TOKEN_ADDRESS as Hex,
+          to: USDC_E_ADDRESS as Hex,
           data: encodeFunctionData({
             abi: ERC20_ABI,
             functionName: "approve",
@@ -85,21 +74,26 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
           }),
         });
         
-        response += `1. Approved wS for SwapX vault\n` +
+        response += `1. Approved USDC.e for SwapX vault\n` +
                     `   Transaction: ${EXPLORER_BASE_URL}${approveSwapXTx}\n\n`;
 
         await walletProvider.waitForTransactionReceipt(approveSwapXTx);
         await sleep(5000);
       } catch (error) {
         console.error('Step 1 error:', error);
-        return `Strategy execution failed at Step 1 (Approve wS): ${error instanceof Error ? error.message : 'Unknown error'}`;
+        return `Strategy execution failed at Step 1 (Approve USDC.e): ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
 
-      // Step 2: Deposit into SwapX
+      // Step 2: Deposit USDC.e into SwapX
       let lpTokenBalance: bigint;
       try {
+        const publicClient = createPublicClient({
+          chain: sonic,
+          transport: http()
+        });
+
         const allowance = await publicClient.readContract({
-          address: WS_TOKEN_ADDRESS as Hex,
+          address: USDC_E_ADDRESS as Hex,
           abi: ERC20_ABI,
           functionName: 'allowance',
           args: [address as Hex, SWAPX_VAULT_ADDRESS as Hex] as const
@@ -109,40 +103,40 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
           return `Strategy execution failed: Insufficient allowance for SwapX vault. Please execute step 1 again.`;
         }
 
-        const depositSwapXTx = await walletProvider.sendTransaction({
+        const depositTx = await walletProvider.sendTransaction({
           to: SWAPX_VAULT_ADDRESS as Hex,
           data: encodeFunctionData({
             abi: SWAPX_VAULT_ABI,
             functionName: "deposit",
-            args: [amount, BigInt(0), address as Hex],
+            args: [BigInt(0), amount, address as Hex],
           }),
-          gas: BigInt(600000),
+          gas: BigInt(1200000),
         });
 
-        response += `2. Deposited wS into SwapX vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${depositSwapXTx}\n\n`;
+        response += `2. Deposited ${args.amount} USDC.e into SwapX vault\n` +
+                    `   Transaction: ${EXPLORER_BASE_URL}${depositTx}\n\n`;
 
-        await walletProvider.waitForTransactionReceipt(depositSwapXTx);
+        const receipt = await walletProvider.waitForTransactionReceipt(depositTx);
         await sleep(5000);
-      
+
+        // Get LP token balance after deposit
         lpTokenBalance = await publicClient.readContract({
           address: SWAPX_VAULT_ADDRESS as Hex,
           abi: SWAPX_VAULT_ABI,
-          functionName: 'balanceOf',
-          args: [address as Hex]
+          functionName: "balanceOf",
+          args: [address as Hex],
         });
 
         if (lpTokenBalance === BigInt(0)) {
-          return "Strategy execution failed: No SwapX LP tokens received after deposit. Please try again later or with a different amount.";
+          throw new Error("No LP tokens received from deposit");
         }
 
-        response += `Received ${lpTokenBalance} SwapX LP tokens\n\n`;
       } catch (error) {
+        console.error('Step 2 error:', error);
         if (error instanceof Error && error.message.includes('try later')) {
           return `The SwapX vault is temporarily unavailable for deposits. Please try again in a few minutes.`;
         }
-        console.error('Step 2 error:', error);
-        return `Strategy execution failed at Step 2 (Deposit wS): ${error instanceof Error ? error.message : 'Unknown error'}`;
+        return `Strategy execution failed at Step 2 (Deposit USDC.e): ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
 
       // Step 3: Approve SwapX LP tokens for Beefy vault
@@ -172,10 +166,9 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
           to: BEEFY_VAULT_ADDRESS as Hex,
           data: encodeFunctionData({
             abi: BEEFY_VAULT_ABI,
-            functionName: "depositAll",
-            args: [],
+            functionName: "deposit",
+            args: [lpTokenBalance],
           }),
-          gas: BigInt(600000),
         });
 
         response += `4. Deposited SwapX LP tokens into Beefy vault\n` +
@@ -204,4 +197,4 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
   supportsNetwork = (network: Network) => network.protocolFamily === "evm";
 }
 
-export const wsSwapXBeefyActionProvider = () => new WSSwapXBeefyActionProvider();
+export const usdceSwapXBeefyActionProvider = () => new USDCeSwapXBeefyActionProvider(); 

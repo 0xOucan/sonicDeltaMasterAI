@@ -23,6 +23,7 @@ import { strategyManagerActionProvider } from "./action-providers/strategy-manag
 import { sWrapperActionProvider } from "./action-providers/swrapper";
 import { wsSwapXBeefyActionProvider } from "./action-providers/wsswapx-beefy";
 import { BalanceCheckerActionProvider } from "./action-providers/balance-checker";
+import { usdceSwapXBeefyActionProvider } from "./action-providers/usdce-swapx-beefy";
 
 dotenv.config();
 
@@ -113,25 +114,28 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
     // Create Viem wallet provider
     const walletProvider = new WalletProvider(client);
 
-    // Initialize LLM
-    const llm = new ChatOpenAI({
-      model: "gpt-4o-mini",
-      temperature: 0,
-    });
-
-    console.log("LLM initialized");
-
-    // Initialize AgentKit with basic action providers
-    const providers = [
+    // Create action providers array with all strategies
+    const actionProviders = [
       strategyManagerActionProvider(),
       sWrapperActionProvider(),
       wsSwapXBeefyActionProvider(),
       new BalanceCheckerActionProvider(),
+      usdceSwapXBeefyActionProvider(),
     ];
+
+    // Initialize LLM
+    const llm = new ChatOpenAI({
+      modelName: "gpt-4o-mini",
+      temperature: 0,
+      streaming: true,
+      openAIApiKey: process.env.OPENAI_API_KEY,
+    });
+
+    console.log("LLM initialized");
 
     const agentkit = await AgentKit.from({
       walletProvider,
-      actionProviders: providers,
+      actionProviders: actionProviders,
     });
 
     const tools = await getLangChainTools(agentkit);
@@ -177,7 +181,7 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
           return result.messages[result.messages.length - 1].content as string;
         },
         walletProvider,
-        actionProviders: providers,
+        actionProviders: actionProviders,
         getActions: () => tools
       },
       config: agentConfig 

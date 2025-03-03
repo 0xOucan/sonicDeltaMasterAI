@@ -1,7 +1,6 @@
-export const SWAPX_VAULT_ADDRESS = "0x5F62d612c69fF7BE3FBd9a0cD530D57bCbC7b642";
-export const BEEFY_VAULT_ADDRESS = "0x816d2AEAff13dd1eF3a4A2e16eE6cA4B9e50DDD8";
-export const WS_TOKEN_ADDRESS = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
-export const SWAPX_LP_TOKEN_ADDRESS = "0x5F62d612c69fF7BE3FBd9a0cD530D57bCbC7b642";
+export const SWAPX_VAULT_ADDRESS = "0xc263e421Df94bdf57B27120A9B7B8534A6901D95";
+export const BEEFY_VAULT_ADDRESS = "0x6f8F189250203C6387656B2cAbb00C23b7b7e680";
+export const USDC_E_ADDRESS = "0x29219dd400f2Bf60E5a23d13Be72B486D4038894";
 
 export const SWAPX_VAULT_ABI = [
   {
@@ -43,11 +42,11 @@ export const BEEFY_VAULT_ABI = [
     stateMutability: "nonpayable"
   },
   {
-    name: "depositAll",
-    type: "function",
     inputs: [],
+    name: "depositAll",
     outputs: [],
-    stateMutability: "nonpayable"
+    stateMutability: "nonpayable",
+    type: "function",
   },
   {
     inputs: [
