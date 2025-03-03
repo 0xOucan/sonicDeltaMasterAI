@@ -25,6 +25,21 @@ const TOKENS = {
     address: "0x29219dd400f2Bf60E5a23d13Be72B486D4038894",
     symbol: "USDC.e",
     decimals: 6
+  },
+  WETH: {
+    address: "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b",
+    symbol: "WETH",
+    decimals: 18
+  },
+  aSonWETH: {
+    address: "0xe18Ab82c81E7Eecff32B8A82B1b7d2d23F1EcE96",
+    symbol: "aSonWETH",
+    decimals: 18
+  },
+  aSonUSDCE: {
+    address: "0x578Ee1ca3a8E1b54554Da1Bf7C583506C4CD11c6",
+    symbol: "aSonUSDC.e",
+    decimals: 6
   }
 } as const;
 
@@ -43,9 +58,9 @@ export class BalanceCheckerActionProvider extends ActionProvider<EvmWalletProvid
   }
 
   @CreateAction({
-    name: "check-balance",
-    description: "Check S, wS and USDC.e balances in your connected wallet",
-    schema: z.object({}),
+    name: "check-balances",
+    description: "Check wallet balances for S, wS, USDC.e, WETH and Aave positions",
+    schema: z.object({}).strip(),
   })
   async checkBalances(
     walletProvider: EvmWalletProvider,
@@ -61,17 +76,17 @@ export class BalanceCheckerActionProvider extends ActionProvider<EvmWalletProvid
       const address = await walletProvider.getAddress();
       console.log("Checking balances for address:", address);
 
-      let response = `Wallet Balances for ${address}:\n`;
+      let response = `Current balances for ${address}:\n\n`;
 
       // Check native S balance
       try {
         const sBalance = await publicClient.getBalance({ 
           address: address as Address 
         });
-        response += `S: ${formatUnits(sBalance, 18)} S\n`;
+        response += `- **S**: ${formatUnits(sBalance, 18)}\n`;
       } catch (error) {
         console.error('Error fetching S balance:', error);
-        response += `S: Error fetching balance\n`;
+        response += `- **S**: Error fetching balance\n`;
       }
 
       // Check token balances
@@ -83,10 +98,10 @@ export class BalanceCheckerActionProvider extends ActionProvider<EvmWalletProvid
             functionName: 'balanceOf',
             args: [address as Address]
           });
-          response += `${symbol}: ${formatUnits(balance, token.decimals)} ${token.symbol}\n`;
+          response += `- **${symbol}**: ${formatUnits(balance, token.decimals)}\n`;
         } catch (error) {
           console.error(`Error fetching ${symbol} balance:`, error);
-          response += `${symbol}: Error fetching balance\n`;
+          response += `- **${symbol}**: Error fetching balance\n`;
         }
       }
 
