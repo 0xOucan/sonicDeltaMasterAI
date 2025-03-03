@@ -25,6 +25,7 @@ import { wsSwapXBeefyActionProvider } from "./action-providers/wsswapx-beefy";
 import { BalanceCheckerActionProvider } from "./action-providers/balance-checker";
 import { usdceSwapXBeefyActionProvider } from "./action-providers/usdce-swapx-beefy";
 import { AaveSupplyActionProvider } from "./action-providers/aave-supply";
+import { BeefyPortfolioActionProvider } from "./action-providers/beefy-portfolio";
 
 dotenv.config();
 
@@ -123,6 +124,7 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
       new BalanceCheckerActionProvider(),
       usdceSwapXBeefyActionProvider(),
       new AaveSupplyActionProvider(),
+      new BeefyPortfolioActionProvider(),
     ];
 
     // Initialize LLM
