@@ -6,8 +6,8 @@ export class SWrapperError extends Error {
 }
 
 export class InsufficientBalanceError extends SWrapperError {
-  constructor(balance: string, required: string) {
-    super(`Insufficient balance. You have ${balance} but need ${required}`);
+  constructor(balance: string, required: string, tokenSymbol: string = 'wS') {
+    super(`Insufficient ${tokenSymbol} balance. You have ${balance} but need ${required}`);
     this.name = 'InsufficientBalanceError';
   }
 }

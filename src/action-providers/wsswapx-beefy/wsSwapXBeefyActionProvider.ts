@@ -10,6 +10,7 @@ import type { Hex } from "viem";
 import "reflect-metadata";
 import { sonic } from 'viem/chains';
 import { parseEther } from "viem";
+import { estimateGasParameters, estimateContractGas } from "../../utils/gas-utils";
 
 import {
   SWAPX_VAULT_ADDRESS,
@@ -74,13 +75,24 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
 
       // Step 1: Approve wS for SwapX
       try {
+        // Prepare data for transaction
+        const approveData = encodeFunctionData({
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [SWAPX_VAULT_ADDRESS as Hex, BigInt(args.amount)],
+        });
+        
+        // Estimate gas parameters
+        const gasParams = await estimateGasParameters(
+          WS_TOKEN_ADDRESS as Hex,
+          approveData,
+          BigInt(0)
+        );
+        
         const approveSwapXTx = await walletProvider.sendTransaction({
           to: WS_TOKEN_ADDRESS as Hex,
-          data: encodeFunctionData({
-            abi: ERC20_ABI,
-            functionName: "approve",
-            args: [SWAPX_VAULT_ADDRESS as Hex, BigInt(args.amount)],
-          }),
+          data: approveData,
+          ...gasParams
         });
         
         response += `1. Approved wS for SwapX vault\n` +
@@ -120,14 +132,24 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
         }
 
         // Then execute the deposit with increased gas
+        const depositData = encodeFunctionData({
+          abi: SWAPX_VAULT_ABI,
+          functionName: "deposit",
+          args: [BigInt(args.amount), BigInt(0), address as Hex],
+        });
+        
+        // Estimate gas parameters properly instead of using a fixed value
+        const depositGasParams = await estimateContractGas({
+          contractAddress: SWAPX_VAULT_ADDRESS as Hex,
+          abi: SWAPX_VAULT_ABI,
+          functionName: "deposit",
+          args: [BigInt(args.amount), BigInt(0), address as Hex],
+        });
+        
         const depositSwapXTx = await walletProvider.sendTransaction({
           to: SWAPX_VAULT_ADDRESS as Hex,
-          data: encodeFunctionData({
-            abi: SWAPX_VAULT_ABI,
-            functionName: "deposit",
-            args: [BigInt(args.amount), BigInt(0), address as Hex],
-          }),
-          gas: BigInt(600000), // Increased gas limit
+          data: depositData,
+          ...depositGasParams // Use estimated gas parameters
         });
 
         response += `2. Deposited wS into SwapX vault\n` +

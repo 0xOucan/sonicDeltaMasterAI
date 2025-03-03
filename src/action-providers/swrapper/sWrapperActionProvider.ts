@@ -22,6 +22,7 @@ import {
   InsufficientBalanceError,
   TransactionFailedError,
 } from "./errors";
+import { estimateGasParameters, estimateContractGas } from "../../utils/gas-utils";
 
 /**
  * SWrapperActionProvider provides actions for wrapping and unwrapping Sonic (S) tokens
@@ -85,10 +86,39 @@ export class SWrapperActionProvider extends ActionProvider<EvmWalletProvider> {
     }
   }
 
+  /**
+   * Check if the wallet has enough S (native token) balance
+   */
+  private async checkSBalance(
+    walletProvider: EvmWalletProvider,
+    amount: string
+  ): Promise<void> {
+    // Ensure the address is a valid Hex address
+    const address = await walletProvider.getAddress();
+    if (!isAddress(address)) {
+      throw new SWrapperError("Invalid wallet address");
+    }
+
+    const publicClient = await this.getPublicClientForNetwork(walletProvider);
+    
+    // Get native S token balance
+    const balance = await publicClient.getBalance({
+      address: address as Hex,
+    });
+
+    if (balance < BigInt(amount)) {
+      throw new InsufficientBalanceError(
+        balance.toString(),
+        amount,
+        "S"
+      );
+    }
+  }
+
   @CreateAction({
     name: "wrap-s",
     description: `
-This tool will wrap native S (Sonic) tokens to wS tokens.
+This tool will wrap native S (Sonic) tokens into wS tokens.
 It takes:
 - amount: The amount of S to wrap (in wei)
 
@@ -102,15 +132,28 @@ Example: To wrap 0.1 S, use amount: "100000000000000000"
   ): Promise<string> {
     try {
       await this.checkNetwork(walletProvider);
+      await this.checkSBalance(walletProvider, args.amount);
+
+      // Prepare transaction data
+      const data = encodeFunctionData({
+        abi: WS_TOKEN_ABI,
+        functionName: "deposit",
+        args: [],
+      });
+      
+      // Estimate gas parameters
+      const gasParams = await estimateGasParameters(
+        WS_TOKEN_ADDRESS as Hex,
+        data,
+        BigInt(args.amount) // For wS deposit, we need to send native S as value
+      );
 
       // Deposit S to receive wS
       const tx = await walletProvider.sendTransaction({
         to: WS_TOKEN_ADDRESS as Hex,
+        data,
         value: BigInt(args.amount),
-        data: encodeFunctionData({
-          abi: WS_TOKEN_ABI,
-          functionName: "deposit",
-        }),
+        ...gasParams // Add estimated gas parameters
       });
 
       await walletProvider.waitForTransactionReceipt(tx);
@@ -120,9 +163,6 @@ Example: To wrap 0.1 S, use amount: "100000000000000000"
         return `Error: ${error.message}`;
       }
       if (error instanceof Error) {
-        if (error.message.includes("insufficient funds")) {
-          return "Error: Insufficient S balance for wrapping. Please make sure you have enough S tokens.";
-        }
         return `Transaction failed: ${error.message}`;
       }
       return `Unknown error occurred: ${error}`;
@@ -148,14 +188,25 @@ Example: To unwrap 0.1 wS, use amount: "100000000000000000"
       await this.checkNetwork(walletProvider);
       await this.checkWSBalance(walletProvider, args.amount);
 
+      // Prepare data for transaction
+      const data = encodeFunctionData({
+        abi: WS_TOKEN_ABI,
+        functionName: "withdraw",
+        args: [BigInt(args.amount)],
+      });
+      
+      // Estimate gas parameters
+      const gasParams = await estimateGasParameters(
+        WS_TOKEN_ADDRESS as Hex,
+        data,
+        BigInt(0)
+      );
+
       // Withdraw wS to receive S
       const tx = await walletProvider.sendTransaction({
         to: WS_TOKEN_ADDRESS as Hex,
-        data: encodeFunctionData({
-          abi: WS_TOKEN_ABI,
-          functionName: "withdraw",
-          args: [BigInt(args.amount)],
-        }),
+        data,
+        ...gasParams // Add estimated gas parameters
       });
 
       await walletProvider.waitForTransactionReceipt(tx);
@@ -191,13 +242,24 @@ Example: To transfer 0.01 wS, use amount: "10000000000000000"
       await this.checkNetwork(walletProvider);
       await this.checkWSBalance(walletProvider, args.amount);
 
+      // Prepare transaction data
+      const data = encodeFunctionData({
+        abi: WS_TOKEN_ABI,
+        functionName: "transfer",
+        args: [args.to as Hex, BigInt(args.amount)],
+      });
+      
+      // Estimate gas parameters
+      const gasParams = await estimateGasParameters(
+        WS_TOKEN_ADDRESS as Hex,
+        data,
+        BigInt(0)
+      );
+
       const tx = await walletProvider.sendTransaction({
         to: WS_TOKEN_ADDRESS as Hex,
-        data: encodeFunctionData({
-          abi: WS_TOKEN_ABI,
-          functionName: "transfer",
-          args: [args.to as Hex, BigInt(args.amount)],
-        }),
+        data,
+        ...gasParams // Add estimated gas parameters
       });
 
       await walletProvider.waitForTransactionReceipt(tx);
@@ -232,13 +294,24 @@ Example: To approve 1 wS, use amount: "1000000000000000000"
     try {
       await this.checkNetwork(walletProvider);
 
+      // Prepare transaction data
+      const data = encodeFunctionData({
+        abi: WS_TOKEN_ABI,
+        functionName: "approve",
+        args: [args.spender as Hex, BigInt(args.amount)],
+      });
+      
+      // Estimate gas parameters
+      const gasParams = await estimateGasParameters(
+        WS_TOKEN_ADDRESS as Hex,
+        data,
+        BigInt(0)
+      );
+
       const tx = await walletProvider.sendTransaction({
         to: WS_TOKEN_ADDRESS as Hex,
-        data: encodeFunctionData({
-          abi: WS_TOKEN_ABI,
-          functionName: "approve",
-          args: [args.spender as Hex, BigInt(args.amount)],
-        }),
+        data,
+        ...gasParams // Add estimated gas parameters
       });
 
       await walletProvider.waitForTransactionReceipt(tx);

@@ -23,6 +23,7 @@ import { strategyManagerActionProvider } from "./action-providers/strategy-manag
 import { sWrapperActionProvider } from "./action-providers/swrapper";
 import { wsSwapXBeefyActionProvider } from "./action-providers/wsswapx-beefy";
 import { BalanceCheckerActionProvider } from "./action-providers/balance-checker";
+import { shadowSwapActionProvider } from "./action-providers/shadow-swap";
 
 dotenv.config();
 
@@ -127,6 +128,7 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
       sWrapperActionProvider(),
       wsSwapXBeefyActionProvider(),
       new BalanceCheckerActionProvider(),
+      shadowSwapActionProvider(),
     ];
 
     const agentkit = await AgentKit.from({

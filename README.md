@@ -19,6 +19,13 @@ A versatile chatbot for interacting with the Sonic blockchain, featuring advance
   * Earn additional rewards
   * Detailed transaction links to SonicScan
 
+- **Shadow Swap**
+  * Swap USDC.e to wS tokens directly
+  * Swap wS to USDC.e tokens directly
+  * Auto-approval of token spending
+  * Balance verification before transactions
+  * Slippage protection
+
 ### Token Operations
 - **Native S to wS wrapping**
   * Wrap S tokens to wS for DeFi compatibility
@@ -41,6 +48,7 @@ A versatile chatbot for interacting with the Sonic blockchain, featuring advance
 We are actively developing and expanding Sonic-specific features:
 
 - [x] Wallet balance scanner for strategy eligibility
+- [x] Token swapping via Shadow Exchange
 - [ ] Additional DeFi strategies
 - [ ] Strategy performance tracking
 - [ ] Auto-compound features
@@ -62,6 +70,23 @@ show menu
 To execute a strategy:
 ```
 execute full wS swapx beefy strategy with 1.0 wS
+```
+
+## Shadow Swap Operations
+
+Swap USDC.e to wS:
+```
+swap 1.0 USDC.e to wS
+```
+
+Swap wS to USDC.e:
+```
+swap 1.0 wS to USDC.e
+```
+
+Approve token for trading:
+```
+approve 10.0 USDC.e for Shadow
 ```
 
 ## Basic Token Operations
