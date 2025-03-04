@@ -26,6 +26,7 @@ import { BalanceCheckerActionProvider } from "./action-providers/balance-checker
 import { usdceSwapXBeefyActionProvider } from "./action-providers/usdce-swapx-beefy";
 import { AaveSupplyActionProvider } from "./action-providers/aave-supply";
 import { BeefyPortfolioActionProvider } from "./action-providers/beefy-portfolio";
+import { deltaNeutralActionProvider } from "./action-providers/delta-neutral";
 
 dotenv.config();
 
@@ -125,6 +126,7 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
       usdceSwapXBeefyActionProvider(),
       new AaveSupplyActionProvider(),
       new BeefyPortfolioActionProvider(),
+      deltaNeutralActionProvider(),
     ];
 
     // Initialize LLM
@@ -170,6 +172,12 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
         - Unwrap wS tokens back to native S tokens
         - Transfer wS tokens
         - Check S and wS balances
+        
+        DeFi Strategy Features:
+        - Execute wS-SwapX-Beefy strategy
+        - Execute USDC.e-SwapX-Beefy strategy
+        - Execute Delta Neutral strategy (USDC.e collateral, borrow wS, deploy to Beefy)
+        - Check APY for Delta Neutral strategy
         
         Get the wallet details first to see what tokens are available.
       `,
@@ -243,6 +251,33 @@ async function runChatMode(agent: Agent, config: AgentConfig) {
         break;
       }
 
+      // Handle special menu command to show available strategies
+      if (userInput.toLowerCase() === "menu") {
+        console.log(`
+Here is the menu of available DeFi strategies:
+
+### 1. wS-SwapX-Beefy Strategy
+- **Command**: Execute full wS swapx beefy strategy with <amount> wS
+- **Example**: Execute full wS swapx beefy strategy with 1.5 wS
+- **Description**: Deposit wS tokens into the SwapX vault, receive SwapX LP tokens, and then deposit those LP tokens into the Beefy vault for yield.
+
+### 2. USDC.e-SwapX-Beefy Strategy
+- **Command**: Execute USDC.e strategy with <amount> USDC.e
+- **Example**: Execute USDC.e strategy with 2.5 USDC.e
+- **Description**: Deposit USDC.e tokens into the SwapX vault, receive SwapX LP tokens, and then deposit those LP tokens into the Beefy vault for yield.
+
+### 3. Delta Neutral Strategy
+- **Commands**: 
+  - Check APY: delta-neutral-apy
+  - Execute: execute-delta-neutral with <amount> USDC.e
+- **Example**: execute-delta-neutral with 5.0 USDC.e
+- **Description**: A delta-neutral strategy that uses USDC.e as collateral in Aave, borrows 50% of the collateral value in wS tokens, and deploys them to the SwapX-Beefy vault.
+
+You can also check your wallet balance with the command "check wallet balances".
+        `);
+        continue;
+      }
+
       const response = await agent.invoke(userInput, config);
       console.log(response);
     }
@@ -308,6 +343,10 @@ async function demoMode(agent: Agent) {
     {
       action: "check balance",
       description: "Let's verify our wrapped tokens"
+    },
+    {
+      action: "delta-neutral-apy",
+      description: "Let's check the APY for the Delta Neutral strategy"
     },
     {
       action: "execute full wS swapx beefy strategy with 1.0 wS",

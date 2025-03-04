@@ -11,12 +11,12 @@ A versatile chatbot for interacting with the Sonic blockchain, featuring advance
 - **Auto Mode**: Autonomous execution of strategies
 
 ### DeFi Strategies
-- **wS-SwapX-Beefy Strategy**
+- **wS-SwapX-Beefy Strategy (APY ~500%)**
   * Pre-checks token balances for strategy eligibility
   * Deposit wS into SwapX vault
   * Receive LP tokens
   * Stake LP tokens in Beefy vault
-  * Earn additional rewards
+  * Earn high APY rewards (~500%)
   * Withdrawal functionality
   * Detailed transaction links to SonicScan
 
@@ -68,7 +68,7 @@ A versatile chatbot for interacting with the Sonic blockchain, featuring advance
 ### Aave Protocol Integration
 - Supply assets (USDC.e, WETH)
 - Borrow against collateral
-- Check borrowing power and available credit
+- Check borrowing power and available borrowing power
 - View maximum borrowable amounts per asset
 - Monitor health factor and liquidation thresholds
 - Repay borrowed positions
@@ -138,3 +138,44 @@ Key Features of Aave Dashboard:
 - Lists supplied assets with their APY
 - Shows borrowed assets with negative APY
 - Provides available borrowing power
+
+## Delta Neutral Strategy
+
+Our advanced Delta Neutral strategy leverages Aave lending and Beefy yield farming to create a position that generates yield while minimizing price exposure:
+
+1. Supply USDC.e to Aave as collateral
+2. Borrow wS tokens at 50% of borrowing capacity
+3. Deploy borrowed wS into Beefy's high-yield wS-SwapX vault
+4. Earn the spread between borrowing costs and farming yield
+
+This approach aims to profit from the difference between borrowing APY and farming APY, creating a more stable return profile regardless of token price movements.
+
+### Delta Neutral Commands
+
+Check strategy APY:
+```
+delta-neutral-apy
+```
+
+Example Output:
+```
+## Delta Neutral Strategy - APY Breakdown
+
+💰 **Beefy wS-SwapX Vault APY:** +15.00%
+🏦 **Aave wS Borrow APY:** -4.00%
+
+🔄 **Net Strategy APY:** 11.00%
+
+✅ **Strategy is profitable!** The yield farming returns currently exceed borrowing costs.
+
+### How It Works
+1. Your USDC.e is supplied to Aave as collateral
+2. 50% of your borrowing power is used to borrow wS
+3. Borrowed wS is deployed in Beefy's wS-SwapX vault
+4. You earn the spread between borrowing costs and farming returns
+```
+
+Execute strategy:
+```
+execute-delta-neutral 10
+```
