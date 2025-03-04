@@ -43,3 +43,13 @@ export const WithdrawWETHSchema = z
       .describe("The amount of WETH to withdraw from Aave (e.g., '0.1' for 0.1 WETH)"),
   })
   .strip();
+
+export const BorrowSchema = z.object({
+  asset: z.enum(["USDC_E", "WETH", "WS"]),
+  amount: z.string().min(1),
+});
+
+export const RepaySchema = z.object({
+  asset: z.enum(["USDC_E", "WETH", "WS"]),
+  amount: z.string().min(1),
+});

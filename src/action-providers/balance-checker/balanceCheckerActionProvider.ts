@@ -9,37 +9,43 @@ import {
   createPublicClient,
   http, 
   formatUnits, 
-  type Address 
+  type Address,
+  type Hex
 } from 'viem';
 import { sonic } from 'viem/chains';
 import "reflect-metadata";
 
-// Token addresses on Sonic
+// Token addresses and info
 const TOKENS = {
   wS: {
     address: "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
     symbol: "wS",
-    decimals: 18
+    decimals: 18,
+    price: 0.57 // Fixed price in USD
   },
   USDC_E: {
     address: "0x29219dd400f2Bf60E5a23d13Be72B486D4038894",
     symbol: "USDC.e",
-    decimals: 6
+    decimals: 6,
+    price: 1.00 // Stablecoin
   },
   WETH: {
     address: "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b",
     symbol: "WETH",
-    decimals: 18
+    decimals: 18,
+    price: 2150.00 // Fixed price in USD
   },
   aSonWETH: {
     address: "0xe18Ab82c81E7Eecff32B8A82B1b7d2d23F1EcE96",
     symbol: "aSonWETH",
-    decimals: 18
+    decimals: 18,
+    price: 2150.00 // Same as WETH
   },
   aSonUSDCE: {
     address: "0x578Ee1ca3a8E1b54554Da1Bf7C583506C4CD11c6",
     symbol: "aSonUSDC.e",
-    decimals: 6
+    decimals: 6,
+    price: 1.00 // Same as USDC.e
   }
 } as const;
 
@@ -59,60 +65,81 @@ export class BalanceCheckerActionProvider extends ActionProvider<EvmWalletProvid
 
   @CreateAction({
     name: "check-balances",
-    description: "Check wallet balances for S, wS, USDC.e, WETH and Aave positions",
+    description: "Check wallet balances including supplied assets in Aave",
     schema: z.object({}).strip(),
   })
-  async checkBalances(
-    walletProvider: EvmWalletProvider,
-  ): Promise<string> {
+  async checkBalances(walletProvider: EvmWalletProvider): Promise<string> {
     try {
-      // Set up public client
+      const address = await walletProvider.getAddress();
       const publicClient = createPublicClient({
         chain: sonic,
-        transport: http()
+        transport: http(),
       });
 
-      // Get wallet address from provider
-      const address = await walletProvider.getAddress();
-      console.log("Checking balances for address:", address);
+      // Get native balance
+      const nativeBalance = await publicClient.getBalance({ address: address as Hex });
+      const nativeUSD = Number(formatUnits(nativeBalance, 18)) * 0.57; // S price
 
-      let response = `Current balances for ${address}:\n\n`;
-
-      // Check native S balance
-      try {
-        const sBalance = await publicClient.getBalance({ 
-          address: address as Address 
-        });
-        response += `- **S**: ${formatUnits(sBalance, 18)}\n`;
-      } catch (error) {
-        console.error('Error fetching S balance:', error);
-        response += `- **S**: Error fetching balance\n`;
-      }
-
-      // Check token balances
+      let totalUSD = nativeUSD;
+      let response = `Current Portfolio for ${address}:\n\n`;
+      response += `Native S: ${formatUnits(nativeBalance, 18)} ($${nativeUSD.toFixed(2)})\n\n`;
+      
+      // Wallet Assets
+      response += `Wallet Assets:\n`;
       for (const [symbol, token] of Object.entries(TOKENS)) {
+        if (symbol.startsWith('aSon')) continue; // Skip aTokens for now
+        
         try {
           const balance = await publicClient.readContract({
-            address: token.address as Address,
+            address: token.address as Hex,
             abi: ERC20_ABI,
-            functionName: 'balanceOf',
-            args: [address as Address]
+            functionName: "balanceOf",
+            args: [address as Hex],
           });
-          response += `- **${symbol}**: ${formatUnits(balance, token.decimals)}\n`;
+
+          const amount = Number(formatUnits(balance, token.decimals));
+          const usdValue = amount * token.price;
+          totalUSD += usdValue;
+
+          if (amount > 0) {
+            response += `${symbol}: ${amount.toFixed(6)} ($${usdValue.toFixed(2)})\n`;
+          }
         } catch (error) {
           console.error(`Error fetching ${symbol} balance:`, error);
-          response += `- **${symbol}**: Error fetching balance\n`;
         }
       }
 
-      return response.trim();
+      // Supplied Assets (aTokens)
+      response += `\nSupplied in Aave:\n`;
+      for (const [symbol, token] of Object.entries(TOKENS)) {
+        if (!symbol.startsWith('aSon')) continue; // Only aTokens
+        
+        try {
+          const balance = await publicClient.readContract({
+            address: token.address as Hex,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [address as Hex],
+          });
+
+          const amount = Number(formatUnits(balance, token.decimals));
+          const usdValue = amount * token.price;
+          totalUSD += usdValue;
+
+          if (amount > 0) {
+            response += `${symbol}: ${amount.toFixed(6)} ($${usdValue.toFixed(2)})\n`;
+          }
+        } catch (error) {
+          console.error(`Error fetching ${symbol} balance:`, error);
+        }
+      }
+
+      response += `\nTotal Portfolio Value: $${totalUSD.toFixed(2)}`;
+      return response;
 
     } catch (error) {
-      console.error('Balance check error:', error);
-      if (error instanceof Error) {
-        return `Failed to check balances: ${error.message}`;
-      }
-      return `Unknown error occurred while checking balances`;
+      console.error('Error checking balances:', error);
+      return `Failed to check balances: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 

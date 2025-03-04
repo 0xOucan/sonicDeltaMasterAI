@@ -1,6 +1,6 @@
 # Sonic Blockchain Chatbot
 
-A versatile chatbot for interacting with the Sonic blockchain, featuring advanced DeFi strategies and blockchain interactions.
+A versatile chatbot for interacting with the Sonic blockchain, featuring advanced DeFi strategies, lending protocols, and comprehensive portfolio management.
 
 ## Current Features
 
@@ -17,7 +17,28 @@ A versatile chatbot for interacting with the Sonic blockchain, featuring advance
   * Receive LP tokens
   * Stake LP tokens in Beefy vault
   * Earn additional rewards
+  * Withdrawal functionality
   * Detailed transaction links to SonicScan
+
+- **USDC.e-SwapX-Beefy Strategy**
+  * Similar workflow to wS strategy
+  * Handles USDC.e deposits and withdrawals
+  * Integrated with SwapX and Beefy vaults
+  * Full transaction tracking
+
+### Lending Protocol Integration
+- **Aave Supply Operations**
+  * Supply tokens to Aave protocol
+  * View supplied assets
+  * Track lending positions
+  * Earn interest on deposits
+
+### Portfolio Management
+- **Beefy Portfolio Tracker**
+  * View all Beefy vault positions
+  * Track vault performance
+  * Monitor rewards and yields
+  * Real-time USD value calculations
 
 ### Token Operations
 - **Native S to wS wrapping**
@@ -29,100 +50,87 @@ A versatile chatbot for interacting with the Sonic blockchain, featuring advance
 - **Basic ERC20 token interactions**
 
 ### Wallet Operations
-- **Balance Checker**
+- **Advanced Balance Checker**
   * View native S balance
   * Check wS, USDC.e and other token balances
+  * Track Aave supplied assets
+  * Monitor Beefy vault positions
   * Balance verification before transactions
 - **Transaction tracking**
 - **Blockchain data queries**
 
-## Upcoming Features
+### Portfolio Management
+- Check wallet balances with USD values
+- View total portfolio value across all assets
+- Track supplied assets in Aave protocol
+- Monitor native token and ERC20 balances
 
-We are actively developing and expanding Sonic-specific features:
+### Aave Protocol Integration
+- Supply assets (USDC.e, WETH)
+- Borrow against collateral
+- Check borrowing power and available credit
+- View maximum borrowable amounts per asset
+- Monitor health factor and liquidation thresholds
+- Repay borrowed positions
+- Track lending APY rates
 
-- [x] Wallet balance scanner for strategy eligibility
-- [ ] Additional DeFi strategies
-- [ ] Strategy performance tracking
-- [ ] Auto-compound features
-- [ ] Risk assessment tools
-- [ ] Portfolio management
-- [ ] Strategy comparison tools
+### Token Operations
+- Supply USDC.e to Aave
+- Supply WETH to Aave
+- Withdraw supplied assets
+- Approve token spending
+- Check token balances and allowances
 
-## Using DeFi Strategies
+### Supported Assets
+- Native S Token
+- USDC.e (Bridged USDC)
+- WETH (Wrapped ETH)
+- wS (Wrapped S)
+- aSonWETH (Aave Sonic WETH)
+- aSonUSDC.e (Aave Sonic USDC.e)
 
-To view available strategies:
-```
-list strategies
-```
-or
-```
-show menu
-```
+## Usage Examples
 
-To execute a strategy:
+Check Portfolio:
 ```
-execute full wS swapx beefy strategy with 1.0 wS
-```
-
-## Basic Token Operations
-
-Wrap S to wS:
-```
-wrap 1.0 S
-```
-
-Unwrap wS to S:
-```
-unwrap 1.0 wS
+check balances
 ```
 
-Check your balances:
+Check Borrowing Power:
 ```
-check balance
-```
-
-## Demo Mode
-
-Run a guided demo showcasing key features:
-```
-Choose mode: demo
+check borrowing power
 ```
 
-In Telegram, use:
+Check Maximum Borrowable Amount:
 ```
-/demo
-```
-
-The demo will:
-1. Check wallet balances
-2. Wrap S to wS
-3. Verify the wrapped tokens
-4. Execute the SwapX-Beefy strategy
-5. Check updated balances
-
-## Environment Setup
-
-Required environment variables:
-```
-OPENAI_API_KEY=your_openai_api_key_here
-WALLET_PRIVATE_KEY=your_wallet_private_key_here
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here (optional)
+check max borrowable USDC_E
+check max borrowable WETH
+check max borrowable WS
 ```
 
-## Getting Started
+Supply Assets:
+```
+aave-supply-usdce 100
+aave-supply-weth 0.1
+```
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Copy `.env.example` to `.env` and fill in your credentials
-4. Build the project: `npm run build`
-5. Start the chatbot: `npm start`
+Borrow Assets:
+```
+borrow from aave USDC_E 100
+borrow from aave WETH 0.1
+borrow from aave WS 1.0
+```
 
-## Sonic Blockchain Specifics
+Repay Borrowed Assets:
+```
+repay to aave USDC_E 100
+repay to aave WETH 0.1
+repay to aave WS 1.0
+```
 
-- Native Token: S
-- Wrapped Token: wS
-- Chain ID: 146
+## Resources
 - Block Explorer: https://sonicscan.org
+- Aave Documentation: https://docs.aave.com
 
 ## License
 
