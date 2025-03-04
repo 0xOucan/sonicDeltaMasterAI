@@ -5,7 +5,7 @@ import {
   CreateAction,
   EvmWalletProvider,
 } from "@coinbase/agentkit";
-import { encodeFunctionData, createPublicClient, http, parseEther } from "viem";
+import { encodeFunctionData, createPublicClient, http, parseEther, formatEther } from "viem";
 import type { Hex } from "viem";
 import "reflect-metadata";
 import { sonic } from 'viem/chains';
@@ -69,135 +69,116 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
       });
 
       if (currentBalance < amount) {
-        return `Insufficient wS balance. You have ${currentBalance.toString()} wei but need ${amount.toString()} wei`;
+        const formattedBalance = formatEther(currentBalance);
+        const formattedAmount = formatEther(amount);
+        return `❌ Insufficient wS balance. You have ${formattedBalance} wS but need ${formattedAmount} wS`;
       }
 
-      let response = "Executing full wS SwapX Beefy strategy:\n\n";
+      let response = "## 🔥 Executing full wS SwapX Beefy strategy:\n\n";
+      response += `✅ Sufficient wS balance: ${formatEther(currentBalance)} wS\n\n`;
       
       // Step 1: Approve wS for SwapX
       try {
+        response += `📝 Transaction 1/3: Approve SwapX LP vault to spend wS\n`;
         const approveSwapXTx = await walletProvider.sendTransaction({
           to: WS_TOKEN_ADDRESS as Hex,
           data: encodeFunctionData({
             abi: ERC20_ABI,
-            functionName: "approve",
-            args: [SWAPX_VAULT_ADDRESS as Hex, amount],
-          }),
+            functionName: 'approve',
+            args: [
+              SWAPX_VAULT_ADDRESS as Hex,
+              amount
+            ]
+          })
         });
-        
-        response += `1. Approved wS for SwapX vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${approveSwapXTx}\n\n`;
-
+        response += `🔄 Transaction submitted: ${approveSwapXTx} [View on SonicScan](${EXPLORER_BASE_URL}${approveSwapXTx})\n`;
         await walletProvider.waitForTransactionReceipt(approveSwapXTx);
-        await sleep(5000);
-      } catch (error) {
-        console.error('Step 1 error:', error);
-        return `Strategy execution failed at Step 1 (Approve wS): ${error instanceof Error ? error.message : 'Unknown error'}`;
-      }
+        response += `✅ Approval successful!\n\n`;
 
-      // Step 2: Deposit into SwapX
-      let lpTokenBalance: bigint;
-      try {
-        const allowance = await publicClient.readContract({
-          address: WS_TOKEN_ADDRESS as Hex,
-          abi: ERC20_ABI,
-          functionName: 'allowance',
-          args: [address as Hex, SWAPX_VAULT_ADDRESS as Hex] as const
-        });
-
-        if (allowance < amount) {
-          return `Strategy execution failed: Insufficient allowance for SwapX vault. Please execute step 1 again.`;
-        }
-
+        // Step 2: Deposit wS into SwapX vault
+        response += `📝 Transaction 2/3: Deposit ${args.amount} wS into SwapX vault\n`;
+        await sleep(2000); // Give the blockchain time to process the approval
+        
         const depositSwapXTx = await walletProvider.sendTransaction({
           to: SWAPX_VAULT_ADDRESS as Hex,
           data: encodeFunctionData({
             abi: SWAPX_VAULT_ABI,
-            functionName: "deposit",
-            args: [amount, BigInt(0), address as Hex],
-          }),
-          gas: BigInt(1000000),
+            functionName: 'deposit',
+            args: [amount, BigInt(0), address as Hex]
+          })
         });
-
-        response += `2. Deposited wS into SwapX vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${depositSwapXTx}\n\n`;
-
+        response += `🔄 Transaction submitted: ${depositSwapXTx} [View on SonicScan](${EXPLORER_BASE_URL}${depositSwapXTx})\n`;
         await walletProvider.waitForTransactionReceipt(depositSwapXTx);
-        await sleep(5000);
-      
-        lpTokenBalance = await publicClient.readContract({
+        
+        // Check LP Token balance
+        await sleep(2000);
+        const lpBalance = await publicClient.readContract({
           address: SWAPX_VAULT_ADDRESS as Hex,
           abi: SWAPX_VAULT_ABI,
           functionName: 'balanceOf',
           args: [address as Hex]
         });
+        const formattedLpBalance = formatEther(lpBalance);
+        response += `✅ Deposit successful! Received ${formattedLpBalance} LP tokens\n\n`;
 
-        if (lpTokenBalance === BigInt(0)) {
-          return "Strategy execution failed: No SwapX LP tokens received after deposit. Please try again later or with a different amount.";
-        }
-
-        response += `Received ${lpTokenBalance} SwapX LP tokens\n\n`;
-      } catch (error) {
-        if (error instanceof Error && error.message.includes('try later')) {
-          return `The SwapX vault is temporarily unavailable for deposits. Please try again in a few minutes.`;
-        }
-        console.error('Step 2 error:', error);
-        return `Strategy execution failed at Step 2 (Deposit wS): ${error instanceof Error ? error.message : 'Unknown error'}`;
-      }
-
-      // Step 3: Approve SwapX LP tokens for Beefy vault
-      try {
-        const approveBeefyTx = await walletProvider.sendTransaction({
+        // Step 3: Approve LP tokens for Beefy
+        response += `📝 Transaction 3/3: Stake LP tokens in Beefy vault\n`;
+        const approveLPBeefyTx = await walletProvider.sendTransaction({
           to: SWAPX_VAULT_ADDRESS as Hex,
           data: encodeFunctionData({
             abi: SWAPX_VAULT_ABI,
-            functionName: "approve",
-            args: [BEEFY_VAULT_ADDRESS as Hex, lpTokenBalance],
-          }),
+            functionName: 'approve',
+            args: [
+              BEEFY_VAULT_ADDRESS as Hex,
+              lpBalance
+            ]
+          })
         });
-
-        response += `3. Approved SwapX LP tokens for Beefy vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${approveBeefyTx}\n\n`;
-
-        await walletProvider.waitForTransactionReceipt(approveBeefyTx);
-        await sleep(5000);
-      } catch (error) {
-        console.error('Step 3 error:', error);
-        return `Strategy execution failed at Step 3 (Approve LP tokens): ${error instanceof Error ? error.message : 'Unknown error'}`;
-      }
-
-      // Step 4: Deposit LP tokens into Beefy
-      try {
+        
+        response += `🔄 Approving LP tokens for Beefy: ${approveLPBeefyTx} [View on SonicScan](${EXPLORER_BASE_URL}${approveLPBeefyTx})\n`;
+        await walletProvider.waitForTransactionReceipt(approveLPBeefyTx);
+        
+        // Step 4: Deposit LP tokens into Beefy vault
+        await sleep(2000);
         const depositBeefyTx = await walletProvider.sendTransaction({
           to: BEEFY_VAULT_ADDRESS as Hex,
           data: encodeFunctionData({
             abi: BEEFY_VAULT_ABI,
-            functionName: "depositAll",
-            args: [],
-          }),
-          gas: BigInt(600000),
+            functionName: 'depositAll',
+            args: []
+          })
         });
-
-        response += `4. Deposited SwapX LP tokens into Beefy vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${depositBeefyTx}\n\n`;
-
+        response += `🔄 Staking LP tokens in Beefy: ${depositBeefyTx} [View on SonicScan](${EXPLORER_BASE_URL}${depositBeefyTx})\n`;
         await walletProvider.waitForTransactionReceipt(depositBeefyTx);
-
-        response += `Strategy execution completed successfully!\n` +
-                    `You can now earn yield on your deposited tokens.`;
+        
+        // Check Beefy vault token balance
+        await sleep(2000);
+        const beefyBalance = await publicClient.readContract({
+          address: BEEFY_VAULT_ADDRESS as Hex,
+          abi: ERC20_ABI,
+          functionName: 'balanceOf',
+          args: [address as Hex]
+        });
+        const formattedBeefyBalance = formatEther(beefyBalance);
+        response += `✅ Staking successful! Received ${formattedBeefyBalance} mooTokens\n\n`;
+        
+        // Successfully completed all steps
+        response += `🎉 Strategy execution complete! You've successfully:\n`;
+        response += `1. Deposited ${args.amount} wS into SwapX vault\n`;
+        response += `2. Received ${formattedLpBalance} LP tokens\n`;
+        response += `3. Staked LP tokens in Beefy vault earning ~500% APY\n`;
+        
+        return response;
       } catch (error) {
-        console.error('Step 4 error:', error);
-        return `Strategy execution failed at Step 4 (Deposit to Beefy): ${error instanceof Error ? error.message : 'Unknown error'}`;
+        console.error('Error executing strategy:', error);
+        throw new WSSwapXBeefyError('Transaction failed. Please try again later.');
       }
-
-      return response;
-
     } catch (error) {
-      console.error('Strategy execution error:', error);
-      if (error instanceof Error) {
-        return `Strategy execution failed: ${error.message}`;
+      console.error('Error executing wS-SwapX-Beefy strategy:', error);
+      if (error instanceof WSSwapXBeefyError) {
+        return `❌ ${error.message}`;
       }
-      return `Unknown error occurred during strategy execution`;
+      return `❌ Failed to execute strategy: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 

@@ -21,31 +21,36 @@ const TOKENS = {
     address: "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
     symbol: "wS",
     decimals: 18,
-    price: 0.57 // Fixed price in USD
+    price: 0.57, // Fixed price in USD
+    emoji: "🌀"
   },
   USDC_E: {
     address: "0x29219dd400f2Bf60E5a23d13Be72B486D4038894",
     symbol: "USDC.e",
     decimals: 6,
-    price: 1.00 // Stablecoin
+    price: 1.00, // Stablecoin
+    emoji: "💵"
   },
   WETH: {
     address: "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b",
     symbol: "WETH",
     decimals: 18,
-    price: 2150.00 // Fixed price in USD
+    price: 2150.00, // Fixed price in USD
+    emoji: "💎"
   },
   aSonWETH: {
     address: "0xe18Ab82c81E7Eecff32B8A82B1b7d2d23F1EcE96",
     symbol: "aSonWETH",
     decimals: 18,
-    price: 2150.00 // Same as WETH
+    price: 2150.00, // Same as WETH
+    emoji: "🏦💎"
   },
   aSonUSDCE: {
     address: "0x578Ee1ca3a8E1b54554Da1Bf7C583506C4CD11c6",
     symbol: "aSonUSDC.e",
     decimals: 6,
-    price: 1.00 // Same as USDC.e
+    price: 1.00, // Same as USDC.e
+    emoji: "🏦💵"
   }
 } as const;
 
@@ -81,11 +86,12 @@ export class BalanceCheckerActionProvider extends ActionProvider<EvmWalletProvid
       const nativeUSD = Number(formatUnits(nativeBalance, 18)) * 0.57; // S price
 
       let totalUSD = nativeUSD;
-      let response = `Current Portfolio for ${address}:\n\n`;
-      response += `Native S: ${formatUnits(nativeBalance, 18)} ($${nativeUSD.toFixed(2)})\n\n`;
+      let response = `## 💼 Current Portfolio for ${address}:\n\n`;
+      response += `### 🪙 Native Tokens:\n`;
+      response += `- **S**: ${formatUnits(nativeBalance, 18)} S ($${nativeUSD.toFixed(2)})\n\n`;
       
       // Wallet Assets
-      response += `Wallet Assets:\n`;
+      response += `### 👛 Wallet Assets:\n`;
       for (const [symbol, token] of Object.entries(TOKENS)) {
         if (symbol.startsWith('aSon')) continue; // Skip aTokens for now
         
@@ -102,7 +108,7 @@ export class BalanceCheckerActionProvider extends ActionProvider<EvmWalletProvid
           totalUSD += usdValue;
 
           if (amount > 0) {
-            response += `${symbol}: ${amount.toFixed(6)} ($${usdValue.toFixed(2)})\n`;
+            response += `- ${token.emoji} **${token.symbol}**: ${amount.toFixed(6)} ${token.symbol} ($${usdValue.toFixed(2)})\n`;
           }
         } catch (error) {
           console.error(`Error fetching ${symbol} balance:`, error);
@@ -110,7 +116,7 @@ export class BalanceCheckerActionProvider extends ActionProvider<EvmWalletProvid
       }
 
       // Supplied Assets (aTokens)
-      response += `\nSupplied in Aave:\n`;
+      response += `\n### 🏦 Supplied in Aave:\n`;
       for (const [symbol, token] of Object.entries(TOKENS)) {
         if (!symbol.startsWith('aSon')) continue; // Only aTokens
         
@@ -127,19 +133,19 @@ export class BalanceCheckerActionProvider extends ActionProvider<EvmWalletProvid
           totalUSD += usdValue;
 
           if (amount > 0) {
-            response += `${symbol}: ${amount.toFixed(6)} ($${usdValue.toFixed(2)})\n`;
+            response += `- ${token.emoji} **${token.symbol}**: ${amount.toFixed(6)} ${token.symbol} ($${usdValue.toFixed(2)})\n`;
           }
         } catch (error) {
           console.error(`Error fetching ${symbol} balance:`, error);
         }
       }
 
-      response += `\nTotal Portfolio Value: $${totalUSD.toFixed(2)}`;
+      response += `\n### 💰 Total Portfolio Value: $${totalUSD.toFixed(2)}`;
       return response;
 
     } catch (error) {
       console.error('Error checking balances:', error);
-      return `Failed to check balances: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return `❌ Failed to check balances: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 
@@ -177,7 +183,7 @@ export async function checkTokenBalance(
     hasBalance,
     currentBalance: balance,
     message: hasBalance 
-      ? `Sufficient ${tokenSymbol} balance: ${formattedBalance} ${tokenSymbol}`
-      : `Insufficient ${tokenSymbol} balance. You have ${formattedBalance} ${tokenSymbol} but need ${formattedRequired} ${tokenSymbol}. Please add more ${tokenSymbol} to your wallet.`
+      ? `✅ Sufficient ${tokenSymbol} balance: ${formattedBalance} ${tokenSymbol}`
+      : `❌ Insufficient ${tokenSymbol} balance. You have ${formattedBalance} ${tokenSymbol} but need ${formattedRequired} ${tokenSymbol}. Please add more ${tokenSymbol} to your wallet.`
   };
 }

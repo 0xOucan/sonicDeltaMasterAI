@@ -79,7 +79,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       const effectiveBorrowApy = aaveBorrowApy * 0.5; 
       const netApy = beefyApyData.apy - effectiveBorrowApy;
       
-      let response = "## Delta Neutral Strategy - APY Breakdown\n\n";
+      let response = "## ⚖️ Delta Neutral Strategy - APY Breakdown\n\n";
       response += `💰 **Beefy wS-SwapX Vault APY:** +${(beefyApyData.apy * 100).toFixed(2)}%\n`;
       response += `🏦 **Aave wS Borrow APY:** -${(aaveBorrowApy * 100).toFixed(2)}%\n`;
       response += `⚖️ **Effective Borrow Cost (using 50% LTV):** -${(effectiveBorrowApy * 100).toFixed(2)}%\n`;
@@ -91,27 +91,25 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
         response += "✅ **Strategy is profitable!** The yield farming returns currently exceed borrowing costs.\n";
       }
       
-      response += "\n### How It Works\n";
-      response += "1. Your USDC.e is supplied to Aave as collateral\n";
-      response += "2. 50% of your borrowing power is used to borrow wS\n";
-      response += "3. Borrowed wS is deployed in Beefy's wS-SwapX vault\n";
-      response += "4. You earn the spread between borrowing costs and farming returns\n";
+      response += "\n### 🔍 How It Works\n";
+      response += "1. 💵 Your USDC.e is supplied to Aave as collateral\n";
+      response += "2. 🔄 50% of your borrowing power is used to borrow wS\n";
+      response += "3. 📈 Borrowed wS is deployed in Beefy's wS-SwapX vault\n";
+      response += "4. 💸 You earn the spread between borrowing costs and farming returns\n";
       
       // Add detailed breakdown if available
-      if (beefyApyData.breakdown && beefyApyData.breakdown.vaultApr) {
-        response += "\n### Detailed APY Breakdown\n";
-        response += `- Base Vault APR: ${(beefyApyData.breakdown.vaultApr * 100).toFixed(2)}%\n`;
-        response += `- Compoundings Per Year: ${beefyApyData.breakdown.compoundingsPerYear}\n`;
-        response += `- Performance Fee: ${(beefyApyData.breakdown.beefyPerformanceFee * 100).toFixed(2)}%\n`;
-        if (beefyApyData.breakdown.tradingApr) {
-          response += `- Trading APR: ${(beefyApyData.breakdown.tradingApr * 100).toFixed(2)}%\n`;
+      if (beefyApyData.breakdown) {
+        response += `\n### 📊 APY Breakdown\n`;
+        response += `- 🔄 SwapX Trading Fees: ${(beefyApyData.breakdown.tradingFees * 100).toFixed(2)}%\n`;
+        if (beefyApyData.breakdown.beefyPerformanceFee) {
+          response += `- 💼 Beefy Performance Fee: ${(beefyApyData.breakdown.beefyPerformanceFee * 100).toFixed(2)}%\n`;
         }
       }
       
       return response;
     } catch (error) {
-      console.error('Error calculating Delta Neutral APY:', error);
-      return `Failed to calculate Delta Neutral strategy APY: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      console.error('Error checking Delta Neutral APY:', error);
+      return `❌ Failed to check Delta Neutral APY: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 
@@ -131,7 +129,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       // Initialize variables
       const amount = parseUnits(args.amountUSDCe, 6); // USDC.e has 6 decimals
       const address = await walletProvider.getAddress();
-      let response = `## Executing Delta Neutral Strategy\n\n`;
+      let response = `## ⚖️ Executing Delta Neutral Strategy\n\n`;
       
       // Step 1: Check USDC.e balance
       const balanceCheck = await checkTokenBalance(
@@ -147,7 +145,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       }
       
       // Step 2: Supply USDC.e to Aave
-      response += `### Step 1: Supply USDC.e to Aave as collateral\n`;
+      response += `### 🏦 Step 1: Supply USDC.e to Aave as collateral\n`;
       
       // Approve USDC.e for Aave
       try {
@@ -161,7 +159,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
         });
         
         response += `✅ Approved ${args.amountUSDCe} USDC.e for Aave protocol\n`;
-        response += `Transaction: ${EXPLORER_BASE_URL}${approveTx}\n\n`;
+        response += `🔄 Transaction submitted: ${approveTx} \n`;
         
         await walletProvider.waitForTransactionReceipt(approveTx);
         await sleep(3000);
@@ -183,7 +181,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
         });
         
         response += `✅ Supplied ${args.amountUSDCe} USDC.e to Aave\n`;
-        response += `Transaction: ${EXPLORER_BASE_URL}${supplyTx}\n\n`;
+        response += `🔄 Transaction submitted: ${supplyTx} \n`;
         
         await walletProvider.waitForTransactionReceipt(supplyTx);
         await sleep(3000);
@@ -193,7 +191,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       }
       
       // Step 3: Get borrowing power and calculate 50%
-      response += `### Step 2: Calculate borrowing power and borrow wS\n`;
+      response += `### 🏦 Step 2: Calculate borrowing power and borrow wS\n`;
       
       const publicClient = createPublicClient({
         chain: sonic,
@@ -245,7 +243,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
         });
         
         response += `✅ Borrowed ${wsAmountToBorrowFormatted} wS from Aave\n`;
-        response += `Transaction: ${EXPLORER_BASE_URL}${borrowTx}\n\n`;
+        response += `🔄 Transaction submitted: ${borrowTx} \n`;
         
         await walletProvider.waitForTransactionReceipt(borrowTx);
         await sleep(3000);
@@ -255,7 +253,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       }
       
       // Step 5: Deploy wS to Beefy wS-SwapX strategy
-      response += `### Step 3: Deploy borrowed wS to Beefy vault\n`;
+      response += `### 🏦 Step 3: Deploy borrowed wS to Beefy vault\n`;
       
       // Step 5.1: Approve wS for SwapX
       try {
@@ -269,7 +267,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
         });
         
         response += `✅ Approved wS for SwapX vault\n`;
-        response += `Transaction: ${EXPLORER_BASE_URL}${approveSwapXTx}\n\n`;
+        response += `🔄 Transaction submitted: ${approveSwapXTx} \n`;
 
         await walletProvider.waitForTransactionReceipt(approveSwapXTx);
         await sleep(3000);
@@ -294,7 +292,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
         });
         
         response += `✅ Deposited wS into SwapX vault\n`;
-        response += `Transaction: ${EXPLORER_BASE_URL}${depositSwapXTx}\n\n`;
+        response += `🔄 Transaction submitted: ${depositSwapXTx} \n`;
 
         await walletProvider.waitForTransactionReceipt(depositSwapXTx);
         await sleep(3000);
@@ -323,7 +321,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
         });
         
         response += `✅ Approved SwapX LP tokens for Beefy vault\n`;
-        response += `Transaction: ${EXPLORER_BASE_URL}${approveBeefyTx}\n\n`;
+        response += `🔄 Transaction submitted: ${approveBeefyTx} \n`;
 
         await walletProvider.waitForTransactionReceipt(approveBeefyTx);
         await sleep(3000);
@@ -345,7 +343,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
         });
         
         response += `✅ Deposited SwapX LP tokens into Beefy vault\n`;
-        response += `Transaction: ${EXPLORER_BASE_URL}${depositBeefyTx}\n\n`;
+        response += `🔄 Transaction submitted: ${depositBeefyTx} \n`;
 
         await walletProvider.waitForTransactionReceipt(depositBeefyTx);
       } catch (error) {
@@ -354,8 +352,8 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       }
       
       // Strategy execution complete
-      response += `### Delta Neutral Strategy Execution Complete\n\n`;
-      response += `Your Delta Neutral position is now active!\n\n`;
+      response += `### ✅ Delta Neutral Strategy Execution Complete\n\n`;
+      response += `✅ Your Delta Neutral position is now active!\n\n`;
       response += `- USDC.e collateral in Aave: ${args.amountUSDCe}\n`;
       response += `- wS borrowed from Aave: ${wsAmountToBorrowFormatted}\n`;
       response += `- wS deployed in SwapX/Beefy: ${wsAmountToBorrowFormatted}\n\n`;
@@ -372,7 +370,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       return response;
     } catch (error) {
       console.error('Error executing Delta Neutral strategy:', error);
-      return `Failed to execute Delta Neutral strategy: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return `❌ Failed to execute Delta Neutral strategy: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
   
