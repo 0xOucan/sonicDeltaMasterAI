@@ -91,47 +91,50 @@ A versatile chatbot for interacting with the Sonic blockchain, featuring advance
 
 ## Usage Examples
 
-Check Portfolio:
+Check Aave Dashboard:
 ```
-check balances
-```
-
-Check Borrowing Power:
-```
-check borrowing power
+aave dashboard
+lending dashboard
+aave positions
+lending protocol
 ```
 
-Check Maximum Borrowable Amount:
+Example Output:
 ```
-check max borrowable USDC_E
-check max borrowable WETH
-check max borrowable WS
+📊 AAVE LENDING DASHBOARD
+
+OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Net Worth: $4.72
+Net APY: -0.11%
+Health Factor: 4.60
+
+SUPPLIED ASSETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Balance: $5.72   APY: 0.46%
+
+USDC.e: 3.00 ($3.00) - APY: 0.86%
+WETH: 0.001273 ($2.74) - APY: 0.01%
+
+BORROWED ASSETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Balance: $1.00   APY: -3.21%
+
+USDC.e: 1.00 ($1.00) - APY: -3.21%
+
+BORROWING POWER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Available: $3.43
+
+USDC.e: 3.43 ($3.43)
+WETH: 0.001595 ($3.43)
+S: 6.02 ($3.43)
 ```
 
-Supply Assets:
-```
-aave-supply-usdce 100
-aave-supply-weth 0.1
-```
-
-Borrow Assets:
-```
-borrow from aave USDC_E 100
-borrow from aave WETH 0.1
-borrow from aave WS 1.0
-```
-
-Repay Borrowed Assets:
-```
-repay to aave USDC_E 100
-repay to aave WETH 0.1
-repay to aave WS 1.0
-```
-
-## Resources
-- Block Explorer: https://sonicscan.org
-- Aave Documentation: https://docs.aave.com
-
-## License
-
-MIT License
+Key Features of Aave Dashboard:
+- Shows total net worth
+- Displays Net APY (can be negative)
+- Tracks health factor
+- Lists supplied assets with their APY
+- Shows borrowed assets with negative APY
+- Provides available borrowing power

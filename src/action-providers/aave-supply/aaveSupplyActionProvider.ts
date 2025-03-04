@@ -515,5 +515,211 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
     }
   }
 
+  @CreateAction({
+    name: "aave-dashboard",
+    description: "View complete Aave lending dashboard with all positions and metrics",
+    schema: z.object({}).strip(),
+  })
+  async aaveDashboard(
+    walletProvider: EvmWalletProvider
+  ): Promise<string> {
+    return this.generateAaveDashboard(walletProvider);
+  }
+
+  @CreateAction({
+    name: "aave-positions",
+    description: "View your Aave lending positions and metrics",
+    schema: z.object({}).strip(),
+  })
+  async aavePositions(
+    walletProvider: EvmWalletProvider
+  ): Promise<string> {
+    return this.generateAaveDashboard(walletProvider);
+  }
+
+  @CreateAction({
+    name: "lending-dashboard",
+    description: "Show your lending dashboard with all positions and metrics",
+    schema: z.object({}).strip(),
+  })
+  async lendingDashboard(
+    walletProvider: EvmWalletProvider
+  ): Promise<string> {
+    return this.generateAaveDashboard(walletProvider);
+  }
+
+  @CreateAction({
+    name: "lending-protocol",
+    description: "View your positions in the Aave lending protocol",
+    schema: z.object({}).strip(),
+  })
+  async lendingProtocol(
+    walletProvider: EvmWalletProvider
+  ): Promise<string> {
+    return this.generateAaveDashboard(walletProvider);
+  }
+
+  // Private helper method that contains the actual dashboard generation code
+  private async generateAaveDashboard(
+    walletProvider: EvmWalletProvider
+  ): Promise<string> {
+    try {
+      const address = await walletProvider.getAddress();
+      const publicClient = createPublicClient({
+        chain: sonic,
+        transport: http()
+      });
+
+      // Get user account data
+      const accountData = await publicClient.readContract({
+        address: AAVE_POOL_ADDRESS as Hex,
+        abi: AAVE_POOL_ABI,
+        functionName: 'getUserAccountData',
+        args: [address as Hex]
+      }) as UserAccountData;
+
+      const [
+        totalCollateralBase,
+        totalDebtBase,
+        availableBorrowsBase,
+        currentLiquidationThreshold,
+        ltv,
+        healthFactor
+      ] = accountData;
+
+      // Format values to match UI
+      const totalCollateralUSD = Number(formatUnits(totalCollateralBase, 8)).toFixed(2);
+      const totalDebtUSD = Number(formatUnits(totalDebtBase, 8)).toFixed(2);
+      const availableBorrowUSD = Number(formatUnits(availableBorrowsBase, 8)).toFixed(2);
+      
+      // Get supplied assets (aTokens)
+      const tokens = {
+        "USDC.e": {
+          aToken: "0x578Ee1ca3a8E1b54554Da1Bf7C583506C4CD11c6",
+          decimals: 6,
+          supplyAPY: 0.86,
+          borrowAPY: 3.21
+        },
+        "WETH": {
+          aToken: "0xe18Ab82c81E7Eecff32B8A82B1b7d2d23F1EcE96",
+          decimals: 18,
+          supplyAPY: 0.01,
+          borrowAPY: 0.04
+        }
+      };
+
+      // Calculate supplied assets and debt positions
+      let suppliedAssets = [];
+      let borrowedAssets = [];
+      let totalSupplyAPY = 0;
+      let totalBorrowAPY = 0;
+      let weightedSupplyAPY = 0;
+      let weightedBorrowAPY = 0;
+      
+      // Check supplied assets
+      for (const [symbol, info] of Object.entries(tokens)) {
+        try {
+          // Check supplied amount (aToken balance)
+          const suppliedBalance = await publicClient.readContract({
+            address: info.aToken as Hex,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [address as Hex],
+          });
+          
+          const suppliedAmount = Number(formatUnits(suppliedBalance, info.decimals));
+          const suppliedUSD = suppliedAmount * (symbol === "USDC.e" ? 1 : symbol === "WETH" ? 2150 : 0.57);
+          
+          if (suppliedAmount > 0) {
+            suppliedAssets.push({
+              symbol,
+              amount: suppliedAmount,
+              usdValue: suppliedUSD,
+              apy: info.supplyAPY
+            });
+            
+            weightedSupplyAPY += (suppliedUSD / Number(totalCollateralUSD)) * info.supplyAPY;
+          }
+          
+          // Check borrowed amount for the asset
+          if (symbol === "USDC.e") {
+            const borrowedAmount = Number(totalDebtUSD); // Simplified - assuming only USDC.e borrowed
+            if (borrowedAmount > 0) {
+              borrowedAssets.push({
+                symbol,
+                amount: borrowedAmount,
+                usdValue: borrowedAmount,
+                apy: info.borrowAPY
+              });
+              
+              weightedBorrowAPY += info.borrowAPY;
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching ${symbol} positions:`, error);
+        }
+      }
+      
+      // Calculate Net APY
+      const netAPY = Number(totalCollateralUSD) > 0 ? 
+        weightedSupplyAPY - (Number(totalDebtUSD) / Number(totalCollateralUSD)) * weightedBorrowAPY :
+        0;
+      
+      // Format the dashboard output
+      let dashboard = `📊 AAVE LENDING DASHBOARD\n\n`;
+      
+      // Overview section
+      dashboard += `OVERVIEW\n`;
+      dashboard += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      dashboard += `Net Worth: $${(Number(totalCollateralUSD) - Number(totalDebtUSD)).toFixed(2)}\n`;
+      dashboard += `Net APY: ${netAPY.toFixed(2)}%\n`;
+      dashboard += `Health Factor: ${Number(formatUnits(healthFactor, 18)) > 1000 ? "∞" : Number(formatUnits(healthFactor, 18)).toFixed(2)}\n\n`;
+      
+      // Supplied assets section
+      dashboard += `SUPPLIED ASSETS\n`;
+      dashboard += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      dashboard += `Balance: $${totalCollateralUSD}   APY: ${weightedSupplyAPY.toFixed(2)}%\n\n`;
+      
+      if (suppliedAssets.length > 0) {
+        for (const asset of suppliedAssets) {
+          dashboard += `${asset.symbol}: ${asset.amount.toFixed(asset.symbol === "USDC.e" ? 2 : 6)} ($${asset.usdValue.toFixed(2)}) - APY: ${asset.apy}%\n`;
+        }
+      } else {
+        dashboard += `No supplied assets\n`;
+      }
+      
+      dashboard += `\n`;
+      
+      // Borrowed assets section
+      dashboard += `BORROWED ASSETS\n`;
+      dashboard += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      dashboard += `Balance: $${totalDebtUSD}   APY: -${weightedBorrowAPY.toFixed(2)}%\n\n`;
+      
+      if (borrowedAssets.length > 0) {
+        for (const asset of borrowedAssets) {
+          dashboard += `${asset.symbol}: ${asset.amount.toFixed(asset.symbol === "USDC.e" ? 2 : 6)} ($${asset.usdValue.toFixed(2)}) - APY: -${asset.apy}%\n`;
+        }
+      } else {
+        dashboard += `No borrowed assets\n`;
+      }
+      
+      dashboard += `\n`;
+      
+      // Borrowing power section
+      dashboard += `BORROWING POWER\n`;
+      dashboard += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+      dashboard += `Available: $${availableBorrowUSD}\n\n`;
+      dashboard += `USDC.e: ${availableBorrowUSD} ($${availableBorrowUSD})\n`;
+      dashboard += `WETH: ${(Number(availableBorrowUSD) / 2150).toFixed(6)} ($${availableBorrowUSD})\n`;
+      dashboard += `S: ${(Number(availableBorrowUSD) / 0.57).toFixed(2)} ($${availableBorrowUSD})\n`;
+      
+      return dashboard;
+
+    } catch (error) {
+      console.error('Error generating Aave dashboard:', error);
+      return `Failed to generate Aave dashboard: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+
   supportsNetwork = (network: Network) => network.protocolFamily === "evm";
 }
