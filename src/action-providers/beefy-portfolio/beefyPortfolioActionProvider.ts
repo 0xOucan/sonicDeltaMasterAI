@@ -5,7 +5,15 @@ import {
   CreateAction,
   EvmWalletProvider,
 } from "@coinbase/agentkit";
+import { createPublicClient, http, formatUnits } from "viem";
+import type { Hex } from "viem";
+import { sonic } from 'viem/chains';
 import "reflect-metadata";
+
+import {
+  BEEFY_VAULT_ADDRESS,
+  BEEFY_VAULT_ABI,
+} from "../wsswapx-beefy/constants";
 
 interface BeefyTimelineItem {
   datetime: string;
@@ -13,21 +21,41 @@ interface BeefyTimelineItem {
   display_name: string;
   chain: string;
   is_eol: boolean;
-  is_dashboard_eol: boolean;
   transaction_hash: string;
+  share_balance: number;
+  usd_balance: number;
   share_to_underlying_price: number;
   underlying_to_usd_price: number;
-  share_balance: number;
-  underlying_balance: number;
-  usd_balance: number;
-  share_diff: number;
-  underlying_diff: number;
-  usd_diff: number;
+  type?: string;
+}
+
+interface BeefyVaultTVL {
+  [key: string]: number;
+}
+
+interface BeefyVaultAPY {
+  [key: string]: number;
 }
 
 export class BeefyPortfolioActionProvider extends ActionProvider<EvmWalletProvider> {
   constructor() {
     super("beefy-portfolio", []);
+  }
+
+  private async getBeefyData(address: string) {
+    // Get timeline data with no cache
+    const timelineResponse = await fetch(
+      `https://databarn.beefy.com/api/v1/beefy/timeline?address=${address}&_t=${Date.now()}`,
+      {
+        headers: {
+          'accept': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      }
+    );
+
+    const timeline = await timelineResponse.json() as BeefyTimelineItem[];
+    return { timeline };
   }
 
   @CreateAction({
@@ -42,73 +70,90 @@ export class BeefyPortfolioActionProvider extends ActionProvider<EvmWalletProvid
       const address = await walletProvider.getAddress();
       console.log("Checking Beefy portfolio for address:", address);
 
-      const apiResponse = await fetch(
-        `https://databarn.beefy.com/api/v1/beefy/timeline?address=${address}`,
-        {
-          method: 'GET',
-          headers: {
-            'accept': 'application/json'
-          }
-        }
-      );
+      const { timeline } = await this.getBeefyData(address);
 
-      if (!apiResponse.ok) {
-        if (apiResponse.status === 404) {
-          return "No Beefy Finance portfolio found for this address. You haven't made any transactions yet.";
-        }
-        throw new Error(`API request failed with status ${apiResponse.status}`);
-      }
-
-      const data = await apiResponse.json();
-      const timeline = data as BeefyTimelineItem[];
-
-      if (timeline.length === 0) {
+      if (!timeline || timeline.length === 0) {
         return "No transactions found in your Beefy Finance portfolio.";
       }
 
-      // Group transactions by vault
-      const vaultTransactions = timeline.reduce((acc, tx) => {
-        if (!acc[tx.display_name]) {
-          acc[tx.display_name] = [];
+      let portfolioOutput = `Current Beefy Finance Portfolio for ${address}:\n\n`;
+      let totalPortfolioValue = 0;
+
+      // Group by vault and get latest state
+      const vaultGroups = timeline.reduce((acc, tx) => {
+        const key = tx.product_key;
+        if (!acc[key]) {
+          acc[key] = [];
         }
-        acc[tx.display_name].push(tx);
+        acc[key].push(tx);
         return acc;
       }, {} as Record<string, BeefyTimelineItem[]>);
 
-      let portfolioOutput = `Beefy Finance Portfolio for ${address}:\n\n`;
-      let totalPortfolioValue = 0;
-
-      // Show current positions and recent transactions
-      for (const [vaultName, transactions] of Object.entries(vaultTransactions)) {
+      // Process each vault
+      for (const [vaultKey, transactions] of Object.entries(vaultGroups)) {
         const latestTx = transactions[0];
-        const usdBalance = latestTx.usd_balance;
+        const vaultId = vaultKey.split(':').pop() as string;
         
-        if (usdBalance > 0) {
-          portfolioOutput += `**${vaultName}**\n`;
-          portfolioOutput += `- Current Balance: $${usdBalance.toFixed(2)}\n`;
-          portfolioOutput += `- Last Transaction: ${new Date(latestTx.datetime).toLocaleString()}\n`;
-          portfolioOutput += `- Transaction Hash: ${latestTx.transaction_hash}\n\n`;
+        try {
+          const publicClient = createPublicClient({
+            chain: sonic,
+            transport: http()
+          });
+
+          // Get real-time balance
+          const balance = await publicClient.readContract({
+            address: vaultId as Hex,
+            abi: BEEFY_VAULT_ABI,
+            functionName: 'balanceOf',
+            args: [address as Hex]
+          }) as bigint;
+
+          if (balance > BigInt(0)) {
+            const ppfs = await publicClient.readContract({
+              address: vaultId as Hex,
+              abi: BEEFY_VAULT_ABI,
+              functionName: 'getPricePerFullShare'
+            }) as bigint;
+
+            // Calculate actual token balance
+            const tokenBalance = Number(formatUnits(balance, 18));
+            const pricePerShare = Number(formatUnits(ppfs, 18));
+            const underlyingBalance = tokenBalance * pricePerShare;
+            
+            // Calculate USD value using the latest transaction's price data
+            const usdValue = underlyingBalance * latestTx.underlying_to_usd_price;
+
+            portfolioOutput += `**${latestTx.display_name}**\n`;
+            portfolioOutput += `- Current Balance: ${tokenBalance.toFixed(8)} mooTokens\n`;
+            portfolioOutput += `- Underlying Balance: ${underlyingBalance.toFixed(8)} LP\n`;
+            portfolioOutput += `- USD Value: $${usdValue.toFixed(2)}\n`;
+            portfolioOutput += `- Price per Share: ${pricePerShare.toFixed(8)}\n`;
+            portfolioOutput += `- Last Transaction: ${new Date(latestTx.datetime).toLocaleString()}\n\n`;
+
+            totalPortfolioValue += usdValue;
+          }
+        } catch (error) {
+          console.error(`Error fetching data for vault ${vaultId}:`, error);
+          // Show error in portfolio but continue processing
+          portfolioOutput += `**${latestTx.display_name}**\n`;
+          portfolioOutput += `Error fetching current balance. Last known values:\n`;
+          portfolioOutput += `- USD Value: $${latestTx.usd_balance.toFixed(2)}\n`;
+          portfolioOutput += `- Last Transaction: ${new Date(latestTx.datetime).toLocaleString()}\n\n`;
           
-          // Add to total only if position is active
-          totalPortfolioValue += usdBalance;
+          totalPortfolioValue += latestTx.usd_balance;
         }
       }
 
-      // Add total portfolio value
       portfolioOutput += `\nTotal Portfolio Value: $${totalPortfolioValue.toFixed(2)}`;
-
       return portfolioOutput;
 
     } catch (error) {
       console.error('Portfolio check error:', error);
-      if (error instanceof Error) {
-        return `Failed to check Beefy portfolio: ${error.message}`;
-      }
-      return 'Unknown error occurred while checking Beefy portfolio';
+      return `Failed to check portfolio: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 
   supportsNetwork(network: Network): boolean {
     return network.protocolFamily === "evm";
   }
-} 
+}

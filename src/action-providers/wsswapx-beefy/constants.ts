@@ -31,6 +31,19 @@ export const SWAPX_VAULT_ABI = [
     outputs: [{ name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
+  },
+  {
+    name: "withdraw",
+    type: "function",
+    inputs: [
+      { name: "shares", type: "uint256" },
+      { name: "to", type: "address" }
+    ],
+    outputs: [
+      { name: "amount0", type: "uint256" },
+      { name: "amount1", type: "uint256" }
+    ],
+    stateMutability: "nonpayable"
   }
 ] as const;
 
@@ -58,6 +71,26 @@ export const BEEFY_VAULT_ABI = [
     outputs: [{ type: "bool" }],
     stateMutability: "nonpayable",
     type: "function",
+  },
+  {
+    name: "withdrawAll",
+    type: "function",
+    inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable"
+  },
+  {
+    name: "balanceOf",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    name: "getPricePerFullShare",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
   }
 ] as const;
 
