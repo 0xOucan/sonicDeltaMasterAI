@@ -43,7 +43,7 @@ function validateEnvironment(): void {
     "OPENAI_API_KEY",
     "WALLET_PRIVATE_KEY"
   ];
-  
+
   requiredVars.forEach((varName) => {
     if (!process.env[varName]) {
       missingVars.push(varName);
@@ -99,7 +99,7 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
 
     // Create Viem account and client
     const account = privateKeyToAccount(privateKey as `0x${string}`);
-    
+
     const transport = http(selectedChain.rpcUrls.default.http[0], {
       batch: true,
       fetchOptions: {},
@@ -183,7 +183,7 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
       `,
     });
 
-    return { 
+    return {
       agent: {
         invoke: async (input: string, config?: AgentConfig) => {
           const result = await reactAgent.invoke(
@@ -196,7 +196,7 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
         actionProviders: actionProviders,
         getActions: () => tools
       },
-      config: agentConfig 
+      config: agentConfig
     };
   } catch (error) {
     console.error("Failed to initialize agent:", error);
@@ -324,11 +324,11 @@ async function demoMode(agent: Agent) {
   console.log("\n🎓 Starting Demo Mode...");
   console.log("This demo will showcase the main features of the Sonic DeFi Agent");
   console.log("⌨️ Press Enter to start the demo...");
-  
+
   const demoConfig = {
     configurable: { thread_id: "demo-session" }
   };
-  
+
   await new Promise(resolve => readline.createInterface(process.stdin).question("", resolve));
 
   const demoSteps = [
@@ -362,9 +362,9 @@ async function demoMode(agent: Agent) {
     console.log("\n-------------------");
     console.log(`\nDemo Step: ${step.description}`);
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
+
     await simulateUserTyping(step.action);
-    
+
     try {
       const response = await agent.invoke(step.action, demoConfig);
       console.log("-------------------");
@@ -372,7 +372,7 @@ async function demoMode(agent: Agent) {
     } catch (error) {
       console.error("Error in demo step:", error);
     }
-    
+
     await new Promise(resolve => setTimeout(resolve, 3000));
   }
 
