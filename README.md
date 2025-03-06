@@ -1,4 +1,4 @@
-# SONICdeltaAIMASTER
+# 🚀 SONICdeltaAIMASTER
 
 An intelligent blockchain assistant for Sonic Network, specializing in **Delta Neutral DeFi strategies** with comprehensive portfolio management and advanced yield optimization capabilities.
 
@@ -6,19 +6,19 @@ An intelligent blockchain assistant for Sonic Network, specializing in **Delta N
 
 Our flagship Delta Neutral strategy delivers stable, market-neutral yields by balancing lending and yield farming positions:
 
-1. **Supply USDC.e to Aave** as collateral
-2. **Borrow wS tokens** at 50% of borrowing capacity
-3. **Deploy borrowed wS** into Beefy's high-yield wS-SwapX vault
-4. **Earn positive yield spread** between borrowing costs and farming returns
+1. 💰 **Supply USDC.e to Aave** as collateral
+2. 🏦 **Borrow wS tokens** at 50% of borrowing capacity
+3. 🌾 **Deploy borrowed wS** into Beefy's high-yield wS-SwapX vault
+4. 💸 **Earn positive yield spread** between borrowing costs and farming returns
 
 This sophisticated approach generates consistent returns regardless of token price movements, offering a low-risk DeFi strategy with these advantages:
 
-- **Market Neutral Exposure**: Minimizes price risk for the borrowed asset
-- **Automatic Optimization**: Dynamically adjusts positions based on current market rates
-- **Leveraged Yield**: Amplifies returns through strategic borrowing
-- **Risk Managed**: Maintains safe health factors on Aave with built-in safeguards
+- 🛡️ **Market Neutral Exposure**: Minimizes price risk for the borrowed asset
+- 🤖 **Automatic Optimization**: Dynamically adjusts positions based on current market rates
+- 📈 **Leveraged Yield**: Amplifies returns through strategic borrowing
+- ⚖️ **Risk Managed**: Maintains safe health factors on Aave with built-in safeguards
 
-### Delta Neutral Commands
+### 🎯 Delta Neutral Commands
 
 Check strategy APY:
 ```

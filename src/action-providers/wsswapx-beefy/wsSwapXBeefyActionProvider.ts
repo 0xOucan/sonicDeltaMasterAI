@@ -72,7 +72,7 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
         return `Insufficient wS balance. You have ${currentBalance.toString()} wei but need ${amount.toString()} wei`;
       }
 
-      let response = "Executing full wS SwapX Beefy strategy:\n\n";
+      let response = "🚀 Executing full wS SwapX Beefy strategy:\n\n";
       
       // Step 1: Approve wS for SwapX
       try {
@@ -85,8 +85,8 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
           }),
         });
         
-        response += `1. Approved wS for SwapX vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${approveSwapXTx}\n\n`;
+        response += `1. ✅ Approved wS for SwapX vault\n` +
+                    `   🔗 Transaction: ${EXPLORER_BASE_URL}${approveSwapXTx}\n\n`;
 
         await walletProvider.waitForTransactionReceipt(approveSwapXTx);
         await sleep(5000);
@@ -119,8 +119,8 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
           gas: BigInt(1000000),
         });
 
-        response += `2. Deposited wS into SwapX vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${depositSwapXTx}\n\n`;
+        response += `2. 📥 Deposited wS into SwapX vault\n` +
+                    `   🔗 Transaction: ${EXPLORER_BASE_URL}${depositSwapXTx}\n\n`;
 
         await walletProvider.waitForTransactionReceipt(depositSwapXTx);
         await sleep(5000);
@@ -136,7 +136,7 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
           return "Strategy execution failed: No SwapX LP tokens received after deposit. Please try again later or with a different amount.";
         }
 
-        response += `Received ${lpTokenBalance} SwapX LP tokens\n\n`;
+        response += `💎 Received ${lpTokenBalance} SwapX LP tokens\n\n`;
       } catch (error) {
         if (error instanceof Error && error.message.includes('try later')) {
           return `The SwapX vault is temporarily unavailable for deposits. Please try again in a few minutes.`;
@@ -156,8 +156,8 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
           }),
         });
 
-        response += `3. Approved SwapX LP tokens for Beefy vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${approveBeefyTx}\n\n`;
+        response += `3. ✅ Approved SwapX LP tokens for Beefy vault\n` +
+                    `   🔗 Transaction: ${EXPLORER_BASE_URL}${approveBeefyTx}\n\n`;
 
         await walletProvider.waitForTransactionReceipt(approveBeefyTx);
         await sleep(5000);
@@ -178,13 +178,13 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
           gas: BigInt(600000),
         });
 
-        response += `4. Deposited SwapX LP tokens into Beefy vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${depositBeefyTx}\n\n`;
+        response += `4. 🌾 Deposited SwapX LP tokens into Beefy vault\n` +
+                    `   🔗 Transaction: ${EXPLORER_BASE_URL}${depositBeefyTx}\n\n`;
 
         await walletProvider.waitForTransactionReceipt(depositBeefyTx);
 
-        response += `Strategy execution completed successfully!\n` +
-                    `You can now earn yield on your deposited tokens.`;
+        response += `✨ Strategy execution completed successfully!\n` +
+                    `💰 You can now earn yield on your deposited tokens.`;
       } catch (error) {
         console.error('Step 4 error:', error);
         return `Strategy execution failed at Step 4 (Deposit to Beefy): ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -211,7 +211,7 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
   ): Promise<string> {
     try {
       const address = await walletProvider.getAddress();
-      let response = `Withdrawing from wS SwapX Beefy strategy:\n\n`;
+      let response = `🔄 Withdrawing from wS SwapX Beefy strategy:\n\n`;
 
       // Step 1: Check Beefy vault balance
       const publicClient = createPublicClient({
@@ -241,8 +241,8 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
           gas: BigInt(400000),
         });
 
-        response += `1. Withdrawn from Beefy vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${withdrawAllTx}\n\n`;
+        response += `1. 📤 Withdrawn from Beefy vault\n` +
+                    `   🔗 Transaction: ${EXPLORER_BASE_URL}${withdrawAllTx}\n\n`;
 
         await walletProvider.waitForTransactionReceipt(withdrawAllTx);
         await sleep(5000); // Wait for state updates
@@ -275,8 +275,8 @@ export class WSSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvider
           gas: BigInt(7000000),
         });
 
-        response += `2. Withdrawn from SwapX vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${withdrawTx}`;
+        response += `2. 📤 Withdrawn from SwapX vault\n` +
+                    `   🔗 Transaction: ${EXPLORER_BASE_URL}${withdrawTx}`;
 
         await walletProvider.waitForTransactionReceipt(withdrawTx);
         return response;

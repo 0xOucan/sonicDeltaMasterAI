@@ -164,7 +164,7 @@ export class BeefyPortfolioActionProvider extends ActionProvider<EvmWalletProvid
     
     // Start with direct contract checks for more accurate real-time data
     let portfolioOutput = `### 🐮 Beefy Finance Portfolio for **${address}**\n\n`;
-    portfolioOutput += `*Last updated: ${new Date().toLocaleString()}*\n\n`;
+    portfolioOutput += `*⏰ Last updated: ${new Date().toLocaleString()}*\n\n`;
     let totalPortfolioValue = 0;
     let foundPositions = false;
     
@@ -467,24 +467,11 @@ export class BeefyPortfolioActionProvider extends ActionProvider<EvmWalletProvid
           
           // Display portfolio information
           portfolioOutput += `${vaultIndex}. **${displayName}**\n`;
-          portfolioOutput += `   - Current Balance: ${tokenBalance.toFixed(8)} mooTokens\n`;
-          portfolioOutput += `   - Underlying Balance: ${underlyingBalance.toFixed(8)} LP\n`;
-          
-          if (usdValue > 0) {
-            portfolioOutput += `   - USD Value: $${usdValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n`;
-          } else {
-            portfolioOutput += `   - USD Value: Unable to determine (price data not available)\n`;
-          }
-          
-          portfolioOutput += `   - Price per Share: ${pricePerShare.toFixed(8)}\n`;
-          
-          if (underlyingToPriceUSD > 0) {
-            portfolioOutput += `   - USD Price per LP: $${underlyingToPriceUSD.toLocaleString(undefined, { maximumFractionDigits: 2})}\n`;
-          }
-          
-          if (apyValue > 0) {
-            portfolioOutput += `   - Current APY: ${(apyValue * 100).toFixed(2)}%\n`;
-          }
+          portfolioOutput += `   - 💰 Current Balance: ${tokenBalance.toFixed(8)} mooTokens\n`;
+          portfolioOutput += `   - 🔄 Underlying Balance: ${underlyingBalance.toFixed(8)} LP\n`;
+          portfolioOutput += `   - 💵 USD Value: $${usdValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}\n`;
+          portfolioOutput += `   - 📈 Price per Share: ${pricePerShare.toFixed(8)}\n`;
+          portfolioOutput += `   - 📊 Current APY: ${(apyValue * 100).toFixed(2)}%\n`;
           
           portfolioOutput += `\n`;
           
@@ -499,7 +486,7 @@ export class BeefyPortfolioActionProvider extends ActionProvider<EvmWalletProvid
       return "🔍 No active positions found in your Beefy Finance portfolio.";
     }
     
-    portfolioOutput += `### **Total Portfolio Value:** $${totalPortfolioValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} \n`;
+    portfolioOutput += `### 💰 **Total Portfolio Value:** $${totalPortfolioValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} \n`;
     return portfolioOutput;
   }
 

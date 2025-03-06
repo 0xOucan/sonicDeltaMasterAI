@@ -114,7 +114,7 @@ Example: To wrap 0.1 S, use amount: "100000000000000000"
       });
 
       await walletProvider.waitForTransactionReceipt(tx);
-      return `Successfully wrapped ${args.amount} S to wS tokens\nTransaction: ${this.getSonicScanLink(tx)}`;
+      return `✅ Successfully wrapped ${args.amount} S to wS tokens\n🔗 Transaction: ${this.getSonicScanLink(tx)}`;
     } catch (error) {
       if (error instanceof SWrapperError) {
         return `Error: ${error.message}`;
@@ -159,7 +159,7 @@ Example: To unwrap 0.1 wS, use amount: "100000000000000000"
       });
 
       await walletProvider.waitForTransactionReceipt(tx);
-      return `Successfully unwrapped ${args.amount} wS back to S tokens\nTransaction: ${this.getSonicScanLink(tx)}`;
+      return `✅ Successfully unwrapped ${args.amount} wS back to S tokens\n🔗 Transaction: ${this.getSonicScanLink(tx)}`;
     } catch (error) {
       if (error instanceof SWrapperError) {
         return `Error: ${error.message}`;
@@ -201,7 +201,7 @@ Example: To transfer 0.01 wS, use amount: "10000000000000000"
       });
 
       await walletProvider.waitForTransactionReceipt(tx);
-      return `Successfully transferred ${args.amount} wS to ${args.to}\nTransaction: ${this.getSonicScanLink(tx)}`;
+      return `✅ Successfully transferred ${args.amount} wS to ${args.to}\n🔗 Transaction: ${this.getSonicScanLink(tx)}`;
     } catch (error) {
       if (error instanceof SWrapperError) {
         return `Error: ${error.message}`;
@@ -242,7 +242,7 @@ Example: To approve 1 wS, use amount: "1000000000000000000"
       });
 
       await walletProvider.waitForTransactionReceipt(tx);
-      return `Successfully approved ${args.amount} wS for ${args.spender}\nTransaction: ${this.getSonicScanLink(tx)}`;
+      return `✅ Successfully approved ${args.amount} wS for ${args.spender}\n🔗 Transaction: ${this.getSonicScanLink(tx)}`;
     } catch (error) {
       if (error instanceof SWrapperError) {
         return `Error: ${error.message}`;
@@ -285,7 +285,7 @@ Returns the balance in wei.
         args: [args.address as Hex],
       }) as bigint;
 
-      return `wS Balance: ${balance.toString()} wei`;
+      return `💰 wS Balance: ${balance.toString()} wei`;
     } catch (error) {
       if (error instanceof SWrapperError) {
         return `Error: ${error.message}`;
@@ -323,7 +323,7 @@ Returns the balance in wei.
         address: args.address as Hex 
       });
 
-      return `S Balance: ${balance.toString()} wei`;
+      return `💰 S Balance: ${balance.toString()} wei`;
     } catch (error) {
       if (error instanceof SWrapperError) {
         return `Error: ${error.message}`;

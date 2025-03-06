@@ -38,7 +38,8 @@ export class TelegramInterface {
       );
       this.bot.sendMessage(
         chatId,
-        "Hello! I am your AI assistant. How can I help you today?\nUse /exit to return to terminal, /kill to shut down the application, or /menu to see available strategies.",
+        "👋 Hello! I am your AI assistant. How can I help you today?\n" +
+        "Use /exit to return to terminal, /kill to shut down the application, or /menu to see available strategies."
       );
     });
 
@@ -70,33 +71,47 @@ export class TelegramInterface {
       if (this.isStarted) {
         await this.bot.sendMessage(
           chatId,
-          `
-# DeFi Strategies Menu
+          `# 🤖 AI Agent Capabilities & Commands
 
-## 1. wS-SwapX-Beefy Strategy (APY ~500%)
-- **Command**: Execute full wS swapx beefy strategy with <amount> wS
-- **Example**: Execute full wS swapx beefy strategy with 1.5 wS
-- **Description**: Deposit wS tokens into SwapX vault, receive LP tokens, then deposit to Beefy for high yield.
+## 💰 Portfolio Management
+- \`check wallet balances\` - View all token balances and portfolio value
+- \`check beefy portfolio\` - View Beefy vault positions and APYs
+- \`aave dashboard\` - View Aave lending positions and metrics
 
-## 2. USDC.e-SwapX-Beefy Strategy
-- **Command**: Execute USDC.e strategy with <amount> USDC.e
-- **Example**: Execute USDC.e strategy with 2.5 USDC.e
-- **Description**: Deposit USDC.e into SwapX vault, receive LP tokens, then deposit to Beefy.
+## 🏦 Lending Operations (Aave)
+- \`aave-supply-usdce <amount>\` - Supply USDC.e to Aave
+- \`aave-supply-weth <amount>\` - Supply WETH to Aave
+- \`aave-withdraw-usdce <amount>\` - Withdraw USDC.e from Aave
+- \`aave-withdraw-weth <amount>\` - Withdraw WETH from Aave
 
-## 3. Delta Neutral Strategy
-- **Commands**: 
-  - Check APY: delta-neutral-apy
-  - Execute: execute-delta-neutral with <amount> USDC.e
-- **Example**: execute-delta-neutral with 5.0 USDC.e
-- **Description**: Use USDC.e as collateral in Aave, borrow 50% in wS, deploy to SwapX-Beefy.
+## 🔄 Token Operations
+- \`wrap <amount> S\` - Wrap S tokens to wS
+- \`unwrap <amount> wS\` - Unwrap wS back to S tokens
+- \`transfer-ws <amount> <address>\` - Transfer wS tokens
+- \`approve-ws <amount> <spender>\` - Approve wS spending
 
-## Utility Commands
-- Check wallet balances: check wallet balances
-- Check Beefy portfolio: check beefy portfolio
-- Check Aave dashboard: aave dashboard
+## 🚀 DeFi Strategies
 
-You can also use /demo to see a demonstration of these features.
-          `,
+### 1. 🌊 wS-SwapX-Beefy Strategy (APY ~500%)
+- \`execute full wS swapx beefy strategy with <amount> wS\`
+- Example: execute full wS swapx beefy strategy with 1.5 wS
+
+### 2. 💵 USDC.e-SwapX-Beefy Strategy
+- \`execute usdce strategy with <amount> USDC.e\`
+- Example: execute usdce strategy with 2.5 USDC.e
+
+### 3. ⚖️ Delta Neutral Strategy
+- \`delta-neutral-apy\` - Check current APY
+- \`execute-delta-neutral with <amount> USDC.e\`
+- Example: execute-delta-neutral with 5.0 USDC.e
+
+## 🛠️ Utility Commands
+- \`/demo\` - Watch guided demo of features
+- \`/menu\` - Show this menu
+- \`/exit\` - Return to terminal
+- \`/kill\` - Shutdown application
+
+💡 Tip: You can check your balances before executing any strategy.`,
           { parse_mode: 'Markdown' }
         );
       }
@@ -164,7 +179,7 @@ You can also use /demo to see a demonstration of these features.
       }
     ];
 
-    await this.bot.sendMessage(chatId, "Starting Demo Mode...\n" +
+    await this.bot.sendMessage(chatId, "🎓 Starting Demo Mode...\n" +
       "This demo will showcase the main features of the Sonic DeFi Agent");
 
     for (const step of demoSteps) {
@@ -183,6 +198,6 @@ You can also use /demo to see a demonstration of these features.
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
 
-    await this.bot.sendMessage(chatId, "\nDemo completed! You can now try these actions yourself.");
+    await this.bot.sendMessage(chatId, "\n✨ Demo completed! You can now try these actions yourself.");
   }
 }

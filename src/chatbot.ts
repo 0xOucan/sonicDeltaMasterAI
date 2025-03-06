@@ -321,9 +321,9 @@ async function simulateUserTyping(text: string, delay = 50): Promise<void> {
 }
 
 async function demoMode(agent: Agent) {
-  console.log("\nStarting Demo Mode...");
+  console.log("\n🎓 Starting Demo Mode...");
   console.log("This demo will showcase the main features of the Sonic DeFi Agent");
-  console.log("Press Enter to start the demo...");
+  console.log("⌨️ Press Enter to start the demo...");
   
   const demoConfig = {
     configurable: { thread_id: "demo-session" }
@@ -334,28 +334,27 @@ async function demoMode(agent: Agent) {
   const demoSteps = [
     {
       action: "check balance",
-      description: "First, let's check our wallet balances"
+      description: "💰 First, let's check our wallet balances"
     },
     {
       action: "wrap 1.0 S",
-      description: "Now, let's wrap 1 S token to wS"
+      description: "🔄 Now, let's wrap 1 S token to wS"
     },
     {
       action: "check balance",
-      description: "Let's verify our wrapped tokens"
+      description: "🔍 Let's verify our wrapped tokens"
     },
     {
       action: "delta-neutral-apy",
-      description: "Let's check the APY for the Delta Neutral strategy"
+      description: "📊 Let's check the APY for the Delta Neutral strategy"
     },
     {
       action: "execute full wS swapx beefy strategy with 1.0 wS",
-      description: "Let's deposit our wS tokens into the SwapX Beefy strategy",
-      delay: 10000 // Longer delay for complex transaction
+      description: "🚀 Let's deposit our wS tokens into the SwapX Beefy strategy"
     },
     {
       action: "check balance",
-      description: "Finally, let's check our updated balances"
+      description: "💎 Finally, let's check our updated balances"
     }
   ];
 
@@ -377,7 +376,7 @@ async function demoMode(agent: Agent) {
     await new Promise(resolve => setTimeout(resolve, 3000));
   }
 
-  console.log("\nDemo completed! You can now try these actions yourself.");
+  console.log("\n✨ Demo completed! You can now try these actions yourself.");
   process.exit(0);
 }
 

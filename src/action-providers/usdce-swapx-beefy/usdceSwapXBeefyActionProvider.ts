@@ -61,7 +61,7 @@ export class USDCeSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvi
       const formattedAmount = formatAmount(args.amount);
       const amount = parseUnits(formattedAmount, 6); // USDC.e has 6 decimals
       const address = await walletProvider.getAddress();
-      let response = "Executing full USDC.e SwapX Beefy strategy:\n\n";
+      let response = "🚀 Executing USDC.e SwapX Beefy strategy:\n\n";
 
       const publicClient = createPublicClient({
         chain: sonic,
@@ -104,8 +104,8 @@ export class USDCeSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvi
             }),
           });
           
-          response += `1. Approved USDC.e for SwapX vault\n` +
-                      `   Transaction: ${EXPLORER_BASE_URL}${approveSwapXTx}\n\n`;
+          response += `1. ✅ Approved USDC.e for SwapX vault\n` +
+                      `   🔗 Transaction: ${EXPLORER_BASE_URL}${approveSwapXTx}\n\n`;
 
           await walletProvider.waitForTransactionReceipt(approveSwapXTx);
           await sleep(5000);
@@ -141,8 +141,8 @@ export class USDCeSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvi
           gas: BigInt(1200000),
         });
 
-        response += `2. Deposited ${args.amount} USDC.e into SwapX vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${depositTx}\n\n`;
+        response += `2. 📥 Deposited ${args.amount} USDC.e into SwapX vault\n` +
+                    `   🔗 Transaction: ${EXPLORER_BASE_URL}${depositTx}\n\n`;
 
         const receipt = await walletProvider.waitForTransactionReceipt(depositTx);
         await sleep(5000);
@@ -178,8 +178,8 @@ export class USDCeSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvi
           }),
         });
 
-        response += `3. Approved SwapX LP tokens for Beefy vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${approveBeefyTx}\n\n`;
+        response += `3. ✅ Approved SwapX LP tokens for Beefy vault\n` +
+                    `   🔗 Transaction: ${EXPLORER_BASE_URL}${approveBeefyTx}\n\n`;
 
         await walletProvider.waitForTransactionReceipt(approveBeefyTx);
         await sleep(5000);
@@ -199,13 +199,13 @@ export class USDCeSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvi
           }),
         });
 
-        response += `4. Deposited SwapX LP tokens into Beefy vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${depositBeefyTx}\n\n`;
+        response += `4. 🌾 Deposited SwapX LP tokens into Beefy vault\n` +
+                    `   🔗 Transaction: ${EXPLORER_BASE_URL}${depositBeefyTx}\n\n`;
 
         await walletProvider.waitForTransactionReceipt(depositBeefyTx);
 
-        response += `Strategy execution completed successfully!\n` +
-                    `You can now earn yield on your deposited tokens.`;
+        response += `✨ Strategy execution completed successfully!\n` +
+                    `💰 You can now earn yield on your deposited tokens.`;
       } catch (error) {
         console.error('Step 4 error:', error);
         return `Strategy execution failed at Step 4 (Deposit to Beefy): ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -229,7 +229,7 @@ export class USDCeSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvi
   ): Promise<string> {
     try {
       const address = await walletProvider.getAddress();
-      let response = `Withdrawing from USDC.e SwapX Beefy strategy:\n\n`;
+      let response = `🔄 Withdrawing from USDC.e SwapX Beefy strategy:\n\n`;
 
       // Step 1: Check Beefy vault balance
       const publicClient = createPublicClient({
@@ -259,8 +259,8 @@ export class USDCeSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvi
           gas: BigInt(400000),
         });
 
-        response += `1. Withdrawn from Beefy vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${withdrawAllTx}\n\n`;
+        response += `1. 📤 Withdrawn from Beefy vault\n` +
+                    `   🔗 Transaction: ${EXPLORER_BASE_URL}${withdrawAllTx}\n\n`;
 
         await walletProvider.waitForTransactionReceipt(withdrawAllTx);
         await sleep(5000);
@@ -293,8 +293,8 @@ export class USDCeSwapXBeefyActionProvider extends ActionProvider<EvmWalletProvi
           gas: BigInt(1000000),
         });
 
-        response += `2. Withdrawn from SwapX vault\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${withdrawTx}`;
+        response += `2. 📤 Withdrawn from SwapX vault\n` +
+                    `   🔗 Transaction: ${EXPLORER_BASE_URL}${withdrawTx}`;
 
         await walletProvider.waitForTransactionReceipt(withdrawTx);
         return response;

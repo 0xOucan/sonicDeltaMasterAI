@@ -666,52 +666,27 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
         0;
       
       // Format the dashboard output
-      let dashboard = `📊 AAVE LENDING DASHBOARD\n\n`;
-      
-      // Overview section
-      dashboard += `OVERVIEW\n`;
-      dashboard += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      dashboard += `Net Worth: $${(Number(totalCollateralUSD) - Number(totalDebtUSD)).toFixed(2)}\n`;
-      dashboard += `Net APY: ${netAPY.toFixed(2)}%\n`;
-      dashboard += `Health Factor: ${Number(formatUnits(healthFactor, 18)) > 1000 ? "∞" : Number(formatUnits(healthFactor, 18)).toFixed(2)}\n\n`;
-      
-      // Supplied assets section
-      dashboard += `SUPPLIED ASSETS\n`;
-      dashboard += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      dashboard += `Balance: $${totalCollateralUSD}   APY: ${weightedSupplyAPY.toFixed(2)}%\n\n`;
-      
-      if (suppliedAssets.length > 0) {
-        for (const asset of suppliedAssets) {
-          dashboard += `${asset.symbol}: ${asset.amount.toFixed(asset.symbol === "USDC.e" ? 2 : 6)} ($${asset.usdValue.toFixed(2)}) - APY: ${asset.apy}%\n`;
-        }
-      } else {
-        dashboard += `No supplied assets\n`;
-      }
-      
-      dashboard += `\n`;
-      
-      // Borrowed assets section
-      dashboard += `BORROWED ASSETS\n`;
-      dashboard += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      dashboard += `Balance: $${totalDebtUSD}   APY: -${weightedBorrowAPY.toFixed(2)}%\n\n`;
-      
-      if (borrowedAssets.length > 0) {
-        for (const asset of borrowedAssets) {
-          dashboard += `${asset.symbol}: ${asset.amount.toFixed(asset.symbol === "USDC.e" ? 2 : 6)} ($${asset.usdValue.toFixed(2)}) - APY: -${asset.apy}%\n`;
-        }
-      } else {
-        dashboard += `No borrowed assets\n`;
-      }
-      
-      dashboard += `\n`;
-      
-      // Borrowing power section
-      dashboard += `BORROWING POWER\n`;
-      dashboard += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      dashboard += `Available: $${availableBorrowUSD}\n\n`;
-      dashboard += `USDC.e: ${availableBorrowUSD} ($${availableBorrowUSD})\n`;
-      dashboard += `WETH: ${(Number(availableBorrowUSD) / 2150).toFixed(6)} ($${availableBorrowUSD})\n`;
-      dashboard += `S: ${(Number(availableBorrowUSD) / 0.57).toFixed(2)} ($${availableBorrowUSD})\n`;
+      let dashboard = `### 📊 AAVE LENDING DASHBOARD
+
+#### 📈 OVERVIEW
+- 💰 **Net Worth:** $${(Number(totalCollateralUSD) - Number(totalDebtUSD)).toFixed(2)}
+- 📊 **Net APY:** ${netAPY.toFixed(2)}%
+- ❤️ **Health Factor:** ${Number(formatUnits(healthFactor, 18)).toFixed(2)}
+
+#### 💎 SUPPLIED ASSETS
+- 💰 **Total Balance:** $${totalCollateralUSD} (APY: ${weightedSupplyAPY.toFixed(2)}%)
+  - 💵 **USDC.e:** ${suppliedAssets[0].amount.toFixed(2)} ($${suppliedAssets[0].usdValue.toFixed(2)}) - APY: ${suppliedAssets[0].apy}%
+  - ⚡ **WETH:** ${suppliedAssets[1].amount.toFixed(6)} ($${suppliedAssets[1].usdValue.toFixed(2)}) - APY: ${suppliedAssets[1].apy}%
+
+#### 🏦 BORROWED ASSETS
+- 💸 **Total Balance:** $${totalDebtUSD} (APY: -${weightedBorrowAPY.toFixed(2)}%)
+  - 💵 **USDC.e:** ${borrowedAssets[0].amount.toFixed(2)} ($${borrowedAssets[0].usdValue.toFixed(2)}) - APY: -${borrowedAssets[0].apy}%
+
+#### 💪 BORROWING POWER
+- 📊 **Available:** $${availableBorrowUSD}
+  - 💵 **USDC.e:** ${availableBorrowUSD} ($${availableBorrowUSD})
+  - ⚡ **WETH:** ${(Number(availableBorrowUSD) / 2150).toFixed(6)} ($${availableBorrowUSD})
+  - 🔷 **S:** ${(Number(availableBorrowUSD) / 0.57).toFixed(2)} ($${availableBorrowUSD})`;
       
       return dashboard;
 
