@@ -123,5 +123,17 @@ export const BEEFY_VAULT_ABI = [
     outputs: [{ type: "bool" }],
     stateMutability: "nonpayable",
     type: "function"
+  },
+  {
+    name: "getPricePerFullShare",
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    name: "totalSupply",
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
   }
 ] as const;

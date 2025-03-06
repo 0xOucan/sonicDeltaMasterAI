@@ -91,6 +91,12 @@ export const BEEFY_VAULT_ABI = [
     outputs: [{ name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function"
+  },
+  {
+    name: "totalSupply",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
   }
 ] as const;
 
