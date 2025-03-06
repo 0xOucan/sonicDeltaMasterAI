@@ -5,7 +5,7 @@ import {
   CreateAction,
   EvmWalletProvider,
 } from "@coinbase/agentkit";
-import { encodeFunctionData, createPublicClient, http, isAddress } from "viem";
+import { encodeFunctionData, createPublicClient, http, isAddress, formatUnits, parseEther } from "viem";
 import type { Hex } from "viem";
 import { sonic } from 'viem/chains';
 import "reflect-metadata";
@@ -89,10 +89,12 @@ export class SWrapperActionProvider extends ActionProvider<EvmWalletProvider> {
     name: "wrap-s",
     description: `
 This tool will wrap native S (Sonic) tokens to wS tokens.
-It takes:
-- amount: The amount of S to wrap (in wei)
+It takes an amount parameter that can be in decimal (like "1.5") or wei format.
+When a user says something like "wrap 1.5 S to wS", convert the decimal to wei.
 
-Example: To wrap 0.1 S, use amount: "100000000000000000"
+Example inputs:
+- "wrap 0.1 S to wS" (converts 0.1 to wei automatically)
+- "100000000000000000" (raw wei amount)
 `,
     schema: WrapSSchema,
   })
@@ -102,41 +104,56 @@ Example: To wrap 0.1 S, use amount: "100000000000000000"
   ): Promise<string> {
     try {
       await this.checkNetwork(walletProvider);
-
-      // Deposit S to receive wS
+      
+      // Check if the amount is already in wei format or a decimal string
+      let amountInWei: bigint;
+      let humanReadableAmount: string;
+      
+      if (args.amount.includes('.') || !args.amount.match(/^[0-9]+$/)) {
+        // This is likely a decimal amount (e.g., "1.5")
+        // Convert to wei assuming 18 decimals
+        try {
+          amountInWei = parseEther(args.amount);
+          humanReadableAmount = args.amount;
+        } catch (error) {
+          return `❌ Invalid amount format: ${args.amount}. Please provide a valid number.`;
+        }
+      } else {
+        // This is likely already a wei amount (e.g., "1000000000000000000")
+        amountInWei = BigInt(args.amount);
+        humanReadableAmount = parseFloat(formatUnits(amountInWei, 18)).toFixed(2);
+      }
+      
+      // Wrap S to receive wS
       const tx = await walletProvider.sendTransaction({
         to: WS_TOKEN_ADDRESS as Hex,
-        value: BigInt(args.amount),
-        data: encodeFunctionData({
-          abi: WS_TOKEN_ABI,
-          functionName: "deposit",
-        }),
+        value: amountInWei,
+        data: "0x", // Empty data for wrapping
       });
 
       await walletProvider.waitForTransactionReceipt(tx);
-      return `Successfully wrapped ${args.amount} S to wS tokens\nTransaction: ${this.getSonicScanLink(tx)}`;
+      return `🔄 Successfully wrapped ${humanReadableAmount} S to wS tokens\n\n📝 Transaction: ${this.getSonicScanLink(tx)}`;
     } catch (error) {
       if (error instanceof SWrapperError) {
-        return `Error: ${error.message}`;
+        return `❌ Error: ${error.message}`;
       }
       if (error instanceof Error) {
-        if (error.message.includes("insufficient funds")) {
-          return "Error: Insufficient S balance for wrapping. Please make sure you have enough S tokens.";
-        }
-        return `Transaction failed: ${error.message}`;
+        return `❌ Transaction failed: ${error.message}`;
       }
-      return `Unknown error occurred: ${error}`;
+      return `❌ Unknown error occurred: ${error}`;
     }
   }
 
   @CreateAction({
     name: "unwrap-s",
     description: `
-This tool will unwrap wS tokens back to native S (Sonic) tokens.
-It takes:
-- amount: The amount of wS to unwrap (in wei)
+This tool will unwrap wS tokens back to native S tokens.
+It takes an amount parameter that can be in decimal (like "1.5") or wei format.
+When a user says something like "unwrap 1.5 wS to S", convert the decimal to wei.
 
-Example: To unwrap 0.1 wS, use amount: "100000000000000000"
+Example inputs:
+- "unwrap 0.1 wS to S" (converts 0.1 to wei automatically)
+- "100000000000000000" (raw wei amount)
 `,
     schema: UnwrapSSchema,
   })
@@ -146,7 +163,45 @@ Example: To unwrap 0.1 wS, use amount: "100000000000000000"
   ): Promise<string> {
     try {
       await this.checkNetwork(walletProvider);
-      await this.checkWSBalance(walletProvider, args.amount);
+      
+      // Check if the amount is already in wei format or a decimal string
+      let amountInWei: bigint;
+      let humanReadableAmount: string;
+      
+      if (args.amount.includes('.') || !args.amount.match(/^[0-9]+$/)) {
+        // This is likely a decimal amount (e.g., "1.5")
+        // Convert to wei assuming 18 decimals
+        try {
+          amountInWei = parseEther(args.amount);
+          humanReadableAmount = args.amount;
+        } catch (error) {
+          return `❌ Invalid amount format: ${args.amount}. Please provide a valid number.`;
+        }
+      } else {
+        // This is likely already a wei amount (e.g., "1000000000000000000")
+        amountInWei = BigInt(args.amount);
+        humanReadableAmount = parseFloat(formatUnits(amountInWei, 18)).toFixed(2);
+      }
+      
+      // Check wS balance before proceeding
+      const address = await walletProvider.getAddress();
+      const publicClient = await this.getPublicClientForNetwork(walletProvider);
+      
+      // Get actual wS balance
+      const balance = await publicClient.readContract({
+        address: WS_TOKEN_ADDRESS as Hex,
+        abi: WS_TOKEN_ABI,
+        functionName: "balanceOf",
+        args: [address as Hex],
+      }) as bigint;
+      
+      // Format the balance to user-friendly string
+      const humanReadableBalance = parseFloat(formatUnits(balance, 18)).toFixed(2);
+      
+      // Check if user has enough wS
+      if (balance < amountInWei) {
+        return `❌ Insufficient balance. You have ${humanReadableBalance} wS but trying to unwrap ${humanReadableAmount} wS.`;
+      }
 
       // Withdraw wS to receive S
       const tx = await walletProvider.sendTransaction({
@@ -154,20 +209,20 @@ Example: To unwrap 0.1 wS, use amount: "100000000000000000"
         data: encodeFunctionData({
           abi: WS_TOKEN_ABI,
           functionName: "withdraw",
-          args: [BigInt(args.amount)],
+          args: [amountInWei],
         }),
       });
 
       await walletProvider.waitForTransactionReceipt(tx);
-      return `Successfully unwrapped ${args.amount} wS back to S tokens\nTransaction: ${this.getSonicScanLink(tx)}`;
+      return `🔄 Successfully unwrapped ${humanReadableAmount} wS back to S tokens\n\n📝 Transaction: ${this.getSonicScanLink(tx)}`;
     } catch (error) {
       if (error instanceof SWrapperError) {
-        return `Error: ${error.message}`;
+        return `❌ Error: ${error.message}`;
       }
       if (error instanceof Error) {
-        return `Transaction failed: ${error.message}`;
+        return `❌ Transaction failed: ${error.message}`;
       }
-      return `Unknown error occurred: ${error}`;
+      return `❌ Unknown error occurred: ${error}`;
     }
   }
 
@@ -201,15 +256,15 @@ Example: To transfer 0.01 wS, use amount: "10000000000000000"
       });
 
       await walletProvider.waitForTransactionReceipt(tx);
-      return `Successfully transferred ${args.amount} wS to ${args.to}\nTransaction: ${this.getSonicScanLink(tx)}`;
+      return `💸 Successfully transferred ${args.amount} wS to ${args.to}\n\n📝 Transaction: ${this.getSonicScanLink(tx)}`;
     } catch (error) {
       if (error instanceof SWrapperError) {
-        return `Error: ${error.message}`;
+        return `❌ Error: ${error.message}`;
       }
       if (error instanceof Error) {
-        return `Transaction failed: ${error.message}`;
+        return `❌ Transaction failed: ${error.message}`;
       }
-      return `Unknown error occurred: ${error}`;
+      return `❌ Unknown error occurred: ${error}`;
     }
   }
 
@@ -242,15 +297,15 @@ Example: To approve 1 wS, use amount: "1000000000000000000"
       });
 
       await walletProvider.waitForTransactionReceipt(tx);
-      return `Successfully approved ${args.amount} wS for ${args.spender}\nTransaction: ${this.getSonicScanLink(tx)}`;
+      return `✅ Successfully approved ${args.spender} to spend ${args.amount} wS\n\n📝 Transaction: ${this.getSonicScanLink(tx)}`;
     } catch (error) {
       if (error instanceof SWrapperError) {
-        return `Error: ${error.message}`;
+        return `❌ Error: ${error.message}`;
       }
       if (error instanceof Error) {
-        return `Transaction failed: ${error.message}`;
+        return `❌ Transaction failed: ${error.message}`;
       }
-      return `Unknown error occurred: ${error}`;
+      return `❌ Unknown error occurred: ${error}`;
     }
   }
 
@@ -285,12 +340,17 @@ Returns the balance in wei.
         args: [args.address as Hex],
       }) as bigint;
 
-      return `wS Balance: ${balance.toString()} wei`;
+      const formattedBalance = formatUnits(balance, 18);
+      const usdValue = Number(formattedBalance) * 0.57; // estimated wS price
+      return `🌀 wS Balance for ${args.address}: ${formattedBalance} wS ($${usdValue.toFixed(2)})\n`;
     } catch (error) {
       if (error instanceof SWrapperError) {
-        return `Error: ${error.message}`;
+        return `❌ Error: ${error.message}`;
       }
-      return `Error getting wS balance: ${error}`;
+      if (error instanceof Error) {
+        return `❌ Error getting balance: ${error.message}`;
+      }
+      return `❌ Unknown error occurred: ${error}`;
     }
   }
 
@@ -323,12 +383,17 @@ Returns the balance in wei.
         address: args.address as Hex 
       });
 
-      return `S Balance: ${balance.toString()} wei`;
+      const formattedBalance = formatUnits(balance, 18);
+      const usdValue = Number(formattedBalance) * 0.57; // estimated S price
+      return `🪙 S Balance for ${args.address}: ${formattedBalance} S ($${usdValue.toFixed(2)})\n`;
     } catch (error) {
       if (error instanceof SWrapperError) {
-        return `Error: ${error.message}`;
+        return `❌ Error: ${error.message}`;
       }
-      return `Error getting S balance: ${error}`;
+      if (error instanceof Error) {
+        return `❌ Error getting balance: ${error.message}`;
+      }
+      return `❌ Unknown error occurred: ${error}`;
     }
   }
 

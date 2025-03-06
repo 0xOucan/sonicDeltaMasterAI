@@ -1,0 +1,10 @@
+[33m4b957fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mnewswapxbeefy[m[33m, [m[1;31morigin/newswapxbeefy[m[33m)[m added emojis for pleasure lol
+[33m402170f[m added deltaneutral strategies, new menu, and updated docs
+[33mce5b914[m minimum aave dashboard improveements
+[33ma0d4f41[m enhaced aave functionalities and one command dashboard
+[33m2401ece[m added USDC.e strategy withdrawal
+[33m19c8ab1[m beefyportfolio checker improved, usdc and ws strategies improved, withdraw wS from swapxbeefy strategy added and improved
+[33m545f389[m added beefy portfolio checker
+[33mc754812[m added aave USDC and WETH supply and withdrawals
+[33mfa03e95[m added usdce strategy
+[33m18e4bea[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m minor package fixes

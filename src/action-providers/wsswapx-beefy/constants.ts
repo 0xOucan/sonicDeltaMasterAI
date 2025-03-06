@@ -1,5 +1,5 @@
 export const SWAPX_VAULT_ADDRESS = "0x5F62d612c69fF7BE3FBd9a0cD530D57bCbC7b642";
-export const BEEFY_VAULT_ADDRESS = "0x816d2AEAff13dd1eF3a4A2e16eE6cA4B9e50DDD8";
+export const BEEFY_VAULT_ADDRESS = "0x6f8f189250203c6387656b2cabb00c23b7b7e680";
 export const WS_TOKEN_ADDRESS = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
 export const SWAPX_LP_TOKEN_ADDRESS = "0x5F62d612c69fF7BE3FBd9a0cD530D57bCbC7b642";
 
@@ -49,48 +49,46 @@ export const SWAPX_VAULT_ABI = [
 
 export const BEEFY_VAULT_ABI = [
   {
-    name: "deposit",
-    type: "function",
-    inputs: [{ name: "amount", type: "uint256" }],
-    outputs: [],
-    stateMutability: "nonpayable"
+    "inputs": [{ "internalType": "address", "name": "account", "type": "address" }],
+    "name": "balanceOf",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    name: "depositAll",
-    type: "function",
-    inputs: [],
-    outputs: [],
-    stateMutability: "nonpayable"
+    "inputs": [],
+    "name": "getPricePerFullShare",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
-      { name: "spender", type: "address" },
-      { name: "amount", type: "uint256" }
-    ],
-    name: "approve",
-    outputs: [{ type: "bool" }],
-    stateMutability: "nonpayable",
-    type: "function",
+    "inputs": [],
+    "name": "pricePerShare",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    name: "withdrawAll",
-    type: "function",
-    inputs: [],
-    outputs: [],
-    stateMutability: "nonpayable"
+    "inputs": [{ "internalType": "uint256", "name": "amount", "type": "uint256" }],
+    "name": "deposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    name: "balanceOf",
-    inputs: [{ name: "account", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function"
+    "inputs": [],
+    "name": "depositAll",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    name: "getPricePerFullShare",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function"
+    "inputs": [],
+    "name": "withdrawAll",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   }
 ] as const;
 

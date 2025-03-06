@@ -71,29 +71,38 @@ export class TelegramInterface {
         await this.bot.sendMessage(
           chatId,
           `
-# DeFi Strategies Menu
+# 🚀 DeFi Strategies Menu
 
-## 1. wS-SwapX-Beefy Strategy (APY ~500%)
-- **Command**: Execute full wS swapx beefy strategy with <amount> wS
-- **Example**: Execute full wS swapx beefy strategy with 1.5 wS
-- **Description**: Deposit wS tokens into SwapX vault, receive LP tokens, then deposit to Beefy for high yield.
+## 1. 🔥 wS-SwapX-Beefy Strategy (APY ~500%)
+- 💬 **Command**: Execute full wS swapx beefy strategy with <amount> wS
+- 🔍 **Example**: Execute full wS swapx beefy strategy with 1.5 wS
+- 📋 **Description**: Deposit wS tokens into SwapX vault, receive LP tokens, then deposit to Beefy for high yield.
 
-## 2. USDC.e-SwapX-Beefy Strategy
-- **Command**: Execute USDC.e strategy with <amount> USDC.e
-- **Example**: Execute USDC.e strategy with 2.5 USDC.e
-- **Description**: Deposit USDC.e into SwapX vault, receive LP tokens, then deposit to Beefy.
+## 2. 💰 USDC.e-SwapX-Beefy Strategy (APY ~250%)
+- 💬 **Command**: Execute USDC.e strategy with <amount> USDC.e
+- 🔍 **Example**: Execute USDC.e strategy with 2.5 USDC.e
+- 📋 **Description**: Deposit USDC.e into SwapX vault, receive LP tokens, then deposit to Beefy.
 
-## 3. Delta Neutral Strategy
-- **Commands**: 
-  - Check APY: delta-neutral-apy
-  - Execute: execute-delta-neutral with <amount> USDC.e
-- **Example**: execute-delta-neutral with 5.0 USDC.e
-- **Description**: Use USDC.e as collateral in Aave, borrow 50% in wS, deploy to SwapX-Beefy.
+## 3. ⚖️ Delta Neutral Strategy (APY ~523%)
+- 💬 **Commands**: 
+  - 📊 Check APY: delta-neutral-apy
+  - 🚀 Execute: execute-delta-neutral with <amount> USDC.e
+- 🔍 **Example**: execute-delta-neutral with 5.0 USDC.e
+- 📋 **Description**: Use USDC.e as collateral in Aave, borrow 50% in wS, deploy to SwapX-Beefy.
 
-## Utility Commands
-- Check wallet balances: check wallet balances
-- Check Beefy portfolio: check beefy portfolio
-- Check Aave dashboard: aave dashboard
+## 🛠️ Utility Commands
+- 👛 Check wallet balances: check wallet balances
+- 🐮 Check Beefy portfolio: check beefy portfolio
+- 🏦 Check Aave dashboard: aave dashboard
+- 🔄 Wrap/Unwrap: wrap 1.0 S to wS or unwrap 1.0 wS to S
+- 📊 Portfolio analysis: analyze portfolio strategies
+
+## 📱 Bot Commands
+- 🔄 /start - Start the bot
+- 📋 /menu - Show this menu
+- 🎮 /demo - Run an automated demo
+- 🚪 /exit - Return to terminal
+- 🛑 /kill - Shut down the application
 
 You can also use /demo to see a demonstration of these features.
           `,

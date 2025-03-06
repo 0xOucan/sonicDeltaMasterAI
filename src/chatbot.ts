@@ -254,26 +254,31 @@ async function runChatMode(agent: Agent, config: AgentConfig) {
       // Handle special menu command to show available strategies
       if (userInput.toLowerCase() === "menu") {
         console.log(`
-Here is the menu of available DeFi strategies:
+# 🚀 DeFi Strategies Menu
 
-### 1. wS-SwapX-Beefy Strategy
-- **Command**: Execute full wS swapx beefy strategy with <amount> wS
-- **Example**: Execute full wS swapx beefy strategy with 1.5 wS
-- **Description**: Deposit wS tokens into the SwapX vault, receive SwapX LP tokens, and then deposit those LP tokens into the Beefy vault for yield.
+## 1. 🔥 wS-SwapX-Beefy Strategy (APY ~500%)
+- 💬 **Command**: Execute full wS swapx beefy strategy with <amount> wS
+- 🔍 **Example**: Execute full wS swapx beefy strategy with 1.5 wS
+- 📋 **Description**: Deposit wS tokens into SwapX vault, receive LP tokens, then deposit to Beefy for high yield.
 
-### 2. USDC.e-SwapX-Beefy Strategy
-- **Command**: Execute USDC.e strategy with <amount> USDC.e
-- **Example**: Execute USDC.e strategy with 2.5 USDC.e
-- **Description**: Deposit USDC.e tokens into the SwapX vault, receive SwapX LP tokens, and then deposit those LP tokens into the Beefy vault for yield.
+## 2. 💰 USDC.e-SwapX-Beefy Strategy (APY ~250%)
+- 💬 **Command**: Execute USDC.e strategy with <amount> USDC.e
+- 🔍 **Example**: Execute USDC.e strategy with 2.5 USDC.e
+- 📋 **Description**: Deposit USDC.e into SwapX vault, receive LP tokens, then deposit to Beefy.
 
-### 3. Delta Neutral Strategy
-- **Commands**: 
-  - Check APY: delta-neutral-apy
-  - Execute: execute-delta-neutral with <amount> USDC.e
-- **Example**: execute-delta-neutral with 5.0 USDC.e
-- **Description**: A delta-neutral strategy that uses USDC.e as collateral in Aave, borrows 50% of the collateral value in wS tokens, and deploys them to the SwapX-Beefy vault.
+## 3. ⚖️ Delta Neutral Strategy (APY ~523%)
+- 💬 **Commands**: 
+  - 📊 Check APY: delta-neutral-apy
+  - 🚀 Execute: execute-delta-neutral with <amount> USDC.e
+- 🔍 **Example**: execute-delta-neutral with 5.0 USDC.e
+- 📋 **Description**: Use USDC.e as collateral in Aave, borrow 50% in wS, deploy to SwapX-Beefy.
 
-You can also check your wallet balance with the command "check wallet balances".
+## 🛠️ Utility Commands
+- 👛 Check wallet balances: check wallet balances
+- 🐮 Check Beefy portfolio: check beefy portfolio
+- 🏦 Check Aave dashboard: aave dashboard
+- 🔄 Wrap/Unwrap: wrap 1.0 S to wS or unwrap 1.0 wS to S
+- 📊 Portfolio analysis: analyze portfolio strategies
         `);
         continue;
       }

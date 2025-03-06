@@ -12,7 +12,7 @@ A versatile chatbot for interacting with the Sonic blockchain, featuring advance
 
 ### 💹 DeFi Strategies
 
-#### ⚖️ Delta Neutral Strategy (APY ~11%)
+#### ⚖️ Delta Neutral Strategy (APY ~11-500%)
 
 Our advanced Delta Neutral strategy leverages Aave lending and Beefy yield farming to create a position that generates yield while minimizing price exposure:
 
@@ -234,37 +234,64 @@ You have both wS and USDC.e, giving you access to all strategies. For optimal re
 - **👍 Approve token spending**
 - **💼 Basic ERC20 token interactions**
 
+**Commands:**
+```
+wrap 1.0 S to wS
+unwrap 1.0 wS to S
+```
+
+**Example Output:**
+```
+🔄 Successfully wrapped 1.0 S to wS tokens
+
+📝 Transaction: https://sonicscan.org/tx/0x9f22ebd2eb4041f3ceb5ed43644f2c7d3dad25f6a22d4c70635679690c8bc24c
+```
+
 ### 💰 Wallet Operations
 - **👛 Advanced Balance Checker**
   * View native S balance
   * Check wS, USDC.e and other token balances
   * Track Aave supplied assets
-  * Monitor Beefy vault positions
+  * Monitor Aave borrowed positions
+  * Track Beefy vault positions
+  * View comprehensive portfolio summary
   * Balance verification before transactions
 - **📝 Transaction tracking**
 - **🔎 Blockchain data queries**
 
 **Commands:**
 ```
-check-balances
+check wallet balances
 ```
 
 **Example Output:**
 ```
-Current Portfolio for 0x1234...5678:
+## 💼 Current Portfolio for 0x1234...5678:
 
-🪙 Native S: 15.250000 ($8.69)
+### 🪙 Native Tokens:
+- **S**: 15.250 S ($8.69)
 
-Wallet Assets:
-🌀 wS: 5.432100 ($3.10)
-💵 USDC.e: 245.750000 ($245.75)
-💎 WETH: 0.012500 ($26.88)
+### 👛 Wallet Assets:
+- 🌀 **wS**: 5.432 wS ($3.10)
+- 💵 **USDC.e**: 245.750 USDC.e ($245.75)
+- 💎 **WETH**: 0.012 WETH ($26.88)
 
-Supplied in Aave:
-🏦💵 aSonUSDC.e: 100.000000 ($100.00)
-🏦💎 aSonWETH: 0.025000 ($53.75)
+### 🏦 Supplied in Aave:
+- 🏦💵 **aSonUSDC.e**: 100.000 USDC.e ($100.00)
+- 🏦💎 **aSonWETH**: 0.025 WETH ($53.75)
 
-💰 Total Portfolio Value: $438.17
+### 💸 Borrowed from Aave:
+- 📉🌀 **variableDebtWS**: 10.000 ($5.70)
+
+### 🐮 Beefy Finance Portfolio:
+- 🏆 **wS-SwapX Vault**: 9.84320000 mooTokens ($125.75)
+
+### 📊 Portfolio Summary:
+- 👛 **Wallet Value**: $284.42
+- 🏦 **Aave Net Value**: $148.05 (Supplied: $153.75 - Borrowed: $5.70)
+- 🐮 **Beefy Portfolio**: $125.75
+
+### 💰 Total Portfolio Value: $558.22
 ```
 
 ### 🏦 Aave Protocol Integration
@@ -275,6 +302,36 @@ Supplied in Aave:
 - Monitor health factor and liquidation thresholds
 - Repay borrowed positions
 - Track lending APY rates
+
+**Commands:**
+```
+aave dashboard
+```
+
+**Example Output:**
+```
+### 📊 AAVE LENDING DASHBOARD
+
+#### OVERVIEW
+- **Net Worth**: $148.05
+- **Net APY**: 0.25%
+- **Health Factor**: 4.60
+
+#### SUPPLIED ASSETS
+- **Total Balance**: $153.75   |   **APY**: 0.46%
+  - **💵 USDC.e**: 100.00 ($100.00) - APY: 0.86%
+  - **💎 WETH**: 0.025 ($53.75) - APY: 0.01%
+
+#### BORROWED ASSETS
+- **Total Balance**: $5.70   |   **APY**: -3.21%
+  - **🌀 wS**: 10.00 ($5.70) - APY: -3.21%
+
+#### BORROWING POWER
+- **Available**: $77.43
+  - **💵 USDC.e**: 77.43 ($77.43)
+  - **💎 WETH**: 0.036 ($77.43)
+  - **🪙 S**: 135.84 ($77.43)
+```
 
 ### 💱 Supported Assets
 - 🪙 Native S Token

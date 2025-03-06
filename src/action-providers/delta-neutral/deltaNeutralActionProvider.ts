@@ -129,7 +129,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       // Initialize variables
       const amount = parseUnits(args.amountUSDCe, 6); // USDC.e has 6 decimals
       const address = await walletProvider.getAddress();
-      let response = `## ⚖️ Executing Delta Neutral Strategy\n\n`;
+      let response = "";
       
       // Step 1: Check USDC.e balance
       const balanceCheck = await checkTokenBalance(
@@ -145,7 +145,12 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       }
       
       // Step 2: Supply USDC.e to Aave
-      response += `### 🏦 Step 1: Supply USDC.e to Aave as collateral\n`;
+      response = `## ⚖️ Delta Neutral Strategy Execution\n\n`;
+      response += `### 💵 Step 1: Supply USDC.e as collateral to Aave\n`;
+      
+      // Format amount for display
+      const usdceAmount = Number(args.amountUSDCe);
+      const usdceAmountWei = parseUnits(args.amountUSDCe, 6); // USDC.e has 6 decimals
       
       // Approve USDC.e for Aave
       try {
@@ -191,7 +196,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       }
       
       // Step 3: Get borrowing power and calculate 50%
-      response += `### 🏦 Step 2: Calculate borrowing power and borrow wS\n`;
+      response += `\n### 🔄 Step 2: Utilize borrowing power\n`;
       
       const publicClient = createPublicClient({
         chain: sonic,
@@ -253,7 +258,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       }
       
       // Step 5: Deploy wS to Beefy wS-SwapX strategy
-      response += `### 🏦 Step 3: Deploy borrowed wS to Beefy vault\n`;
+      response += `\n### 📈 Step 3: Deploy borrowed wS to Beefy vault\n`;
       
       // Step 5.1: Approve wS for SwapX
       try {
@@ -332,12 +337,21 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       
       // Step 5.4: Deposit into Beefy
       try {
+        // Convert lpTokenBalance to hex string if needed
         const depositBeefyTx = await walletProvider.sendTransaction({
           to: BEEFY_VAULT_ADDRESS as Hex,
           data: encodeFunctionData({
-            abi: BEEFY_VAULT_ABI,
-            functionName: "deposit",
-            args: [lpTokenBalance],
+            abi: [
+              {
+                inputs: [{ type: 'uint256', name: 'amount' }],
+                name: 'deposit',
+                outputs: [],
+                stateMutability: 'nonpayable',
+                type: 'function'
+              }
+            ],
+            functionName: 'deposit',
+            args: [lpTokenBalance]
           }),
           gas: BigInt(500000),
         });
@@ -351,21 +365,22 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
         return `Failed to deposit LP tokens to Beefy: ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
       
-      // Strategy execution complete
-      response += `### ✅ Delta Neutral Strategy Execution Complete\n\n`;
-      response += `✅ Your Delta Neutral position is now active!\n\n`;
-      response += `- USDC.e collateral in Aave: ${args.amountUSDCe}\n`;
-      response += `- wS borrowed from Aave: ${wsAmountToBorrowFormatted}\n`;
-      response += `- wS deployed in SwapX/Beefy: ${wsAmountToBorrowFormatted}\n\n`;
-      
-      // Get APY information
+      // Get APY information for final display
       const beefyApyData = await this.getBeefyApy();
       const aaveBorrowApy = await this.getAaveBorrowApy(walletProvider);
-      const effectiveBorrowApy = aaveBorrowApy * 0.5;  // Half because we're only borrowing against 50% of collateral
-      const netApy = beefyApyData.apy - effectiveBorrowApy;
+
+      // Final summary
+      response += `\n## 🎉 Delta Neutral Strategy Successfully Deployed!\n\n`;
+      response += `You've successfully executed a delta-neutral strategy:\n\n`;
+      response += `1. ✅ Supplied ${args.amountUSDCe} USDC.e to Aave as collateral\n`;
+      response += `2. ✅ Borrowed ${wsAmountToBorrowFormatted} wS (50% of borrowing capacity)\n`;
+      response += `3. ✅ Deployed borrowed wS to Beefy's high-yield wS-SwapX vault\n`;
+      response += `4. ✅ Current strategy APY: ~${(beefyApyData.apy - aaveBorrowApy * 0.5) * 100}%\n\n`;
       
-      response += `Expected APY: ${(netApy * 100).toFixed(2)}%\n\n`;
-      response += `⚠️ **Important:** Monitor your health factor in Aave to avoid liquidation risks.\n`;
+      response += `📊 You can check your position using the following commands:\n`;
+      response += `- "check beefy portfolio" - See your Beefy vault earnings\n`;
+      response += `- "aave dashboard" - Review your Aave positions\n`;
+      response += `- "check wallet balances" - View your overall portfolio\n`;
       
       return response;
     } catch (error) {

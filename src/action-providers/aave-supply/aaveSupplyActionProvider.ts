@@ -337,12 +337,12 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
 
       await walletProvider.waitForTransactionReceipt(borrowTx);
 
-      return `Successfully borrowed ${args.amount} ${args.asset}\n` +
-             `Transaction: ${EXPLORER_BASE_URL}${borrowTx}`;
+      return `✅ Successfully borrowed ${args.amount} ${args.asset}\n` +
+             `📝 Transaction: ${EXPLORER_BASE_URL}${borrowTx}`;
 
     } catch (error) {
       console.error('Borrow error:', error);
-      return `Failed to borrow: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return `❌ Failed to borrow: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 
@@ -390,12 +390,12 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
 
       await walletProvider.waitForTransactionReceipt(repayTx);
 
-      return `Successfully repaid ${args.amount} ${args.asset}\n` +
-             `Transaction: ${EXPLORER_BASE_URL}${repayTx}`;
+      return `✅ Successfully repaid ${args.amount} ${args.asset}\n` +
+             `📝 Transaction: ${EXPLORER_BASE_URL}${repayTx}`;
 
     } catch (error) {
       console.error('Repay error:', error);
-      return `Failed to repay: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return `❌ Failed to repay: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 
@@ -666,52 +666,54 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
         0;
       
       // Format the dashboard output
-      let dashboard = `📊 AAVE LENDING DASHBOARD\n\n`;
+      let dashboard = `### 📊 AAVE LENDING DASHBOARD\n\n`;
       
       // Overview section
-      dashboard += `OVERVIEW\n`;
+      dashboard += `#### OVERVIEW\n`;
       dashboard += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      dashboard += `Net Worth: $${(Number(totalCollateralUSD) - Number(totalDebtUSD)).toFixed(2)}\n`;
-      dashboard += `Net APY: ${netAPY.toFixed(2)}%\n`;
-      dashboard += `Health Factor: ${Number(formatUnits(healthFactor, 18)) > 1000 ? "∞" : Number(formatUnits(healthFactor, 18)).toFixed(2)}\n\n`;
+      dashboard += `- **Net Worth**: $${(Number(totalCollateralUSD) - Number(totalDebtUSD)).toFixed(2)}\n`;
+      dashboard += `- **Net APY**: ${netAPY.toFixed(2)}%\n`;
+      dashboard += `- **Health Factor**: ${Number(formatUnits(healthFactor, 18)) > 1000 ? "∞" : Number(formatUnits(healthFactor, 18)).toFixed(2)}\n\n`;
       
       // Supplied assets section
-      dashboard += `SUPPLIED ASSETS\n`;
+      dashboard += `#### SUPPLIED ASSETS\n`;
       dashboard += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      dashboard += `Balance: $${totalCollateralUSD}   APY: ${weightedSupplyAPY.toFixed(2)}%\n\n`;
+      dashboard += `- **Total Balance**: $${totalCollateralUSD}   |   **APY**: ${weightedSupplyAPY.toFixed(2)}%\n\n`;
       
       if (suppliedAssets.length > 0) {
         for (const asset of suppliedAssets) {
-          dashboard += `${asset.symbol}: ${asset.amount.toFixed(asset.symbol === "USDC.e" ? 2 : 6)} ($${asset.usdValue.toFixed(2)}) - APY: ${asset.apy}%\n`;
+          const emoji = asset.symbol === "USDC.e" ? "💵" : asset.symbol === "WETH" ? "💎" : "🪙";
+          dashboard += `  - **${emoji} ${asset.symbol}**: ${asset.amount.toFixed(asset.symbol === "USDC.e" ? 2 : 6)} ($${asset.usdValue.toFixed(2)}) - APY: ${asset.apy}%\n`;
         }
       } else {
-        dashboard += `No supplied assets\n`;
+        dashboard += `  - No supplied assets\n`;
       }
       
       dashboard += `\n`;
       
       // Borrowed assets section
-      dashboard += `BORROWED ASSETS\n`;
+      dashboard += `#### BORROWED ASSETS\n`;
       dashboard += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      dashboard += `Balance: $${totalDebtUSD}   APY: -${weightedBorrowAPY.toFixed(2)}%\n\n`;
+      dashboard += `- **Total Balance**: $${totalDebtUSD}   |   **APY**: -${weightedBorrowAPY.toFixed(2)}%\n\n`;
       
       if (borrowedAssets.length > 0) {
         for (const asset of borrowedAssets) {
-          dashboard += `${asset.symbol}: ${asset.amount.toFixed(asset.symbol === "USDC.e" ? 2 : 6)} ($${asset.usdValue.toFixed(2)}) - APY: -${asset.apy}%\n`;
+          const emoji = asset.symbol === "USDC.e" ? "💵" : asset.symbol === "WETH" ? "💎" : asset.symbol === "wS" ? "🌀" : "🪙";
+          dashboard += `  - **${emoji} ${asset.symbol}**: ${asset.amount.toFixed(asset.symbol === "USDC.e" ? 2 : 6)} ($${asset.usdValue.toFixed(2)}) - APY: -${asset.apy}%\n`;
         }
       } else {
-        dashboard += `No borrowed assets\n`;
+        dashboard += `  - No borrowed assets\n`;
       }
       
       dashboard += `\n`;
       
       // Borrowing power section
-      dashboard += `BORROWING POWER\n`;
+      dashboard += `#### BORROWING POWER\n`;
       dashboard += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-      dashboard += `Available: $${availableBorrowUSD}\n\n`;
-      dashboard += `USDC.e: ${availableBorrowUSD} ($${availableBorrowUSD})\n`;
-      dashboard += `WETH: ${(Number(availableBorrowUSD) / 2150).toFixed(6)} ($${availableBorrowUSD})\n`;
-      dashboard += `S: ${(Number(availableBorrowUSD) / 0.57).toFixed(2)} ($${availableBorrowUSD})\n`;
+      dashboard += `- **Available**: $${availableBorrowUSD}\n\n`;
+      dashboard += `  - **💵 USDC.e**: ${availableBorrowUSD} ($${availableBorrowUSD})\n`;
+      dashboard += `  - **💎 WETH**: ${(Number(availableBorrowUSD) / 2150).toFixed(6)} ($${availableBorrowUSD})\n`;
+      dashboard += `  - **🪙 S**: ${(Number(availableBorrowUSD) / 0.57).toFixed(2)} ($${availableBorrowUSD})\n`;
       
       return dashboard;
 
