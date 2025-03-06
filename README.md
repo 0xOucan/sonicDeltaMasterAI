@@ -1,105 +1,108 @@
-# Sonic Blockchain Chatbot
+# SONICdeltaAIMASTER
 
-A versatile chatbot for interacting with the Sonic blockchain, featuring advanced DeFi strategies, lending protocols, and comprehensive portfolio management.
+An intelligent blockchain assistant for Sonic Network, specializing in **Delta Neutral DeFi strategies** with comprehensive portfolio management and advanced yield optimization capabilities.
 
-## Current Features
+## 🔥 Core Feature: Delta Neutral Strategy
 
-### Interactive Modes
-- **Chat Mode**: Interactive conversation with the AI assistant
-- **Telegram Mode**: Interact with the assistant through Telegram
-- **Demo Mode**: Guided demonstration of key features
-- **Auto Mode**: Autonomous execution of strategies
+Our flagship Delta Neutral strategy delivers stable, market-neutral yields by balancing lending and yield farming positions:
 
-### DeFi Strategies
-- **wS-SwapX-Beefy Strategy (APY ~500%)**
-  * Pre-checks token balances for strategy eligibility
-  * Deposit wS into SwapX vault
-  * Receive LP tokens
-  * Stake LP tokens in Beefy vault
-  * Earn high APY rewards (~500%)
-  * Withdrawal functionality
-  * Detailed transaction links to SonicScan
+1. **Supply USDC.e to Aave** as collateral
+2. **Borrow wS tokens** at 50% of borrowing capacity
+3. **Deploy borrowed wS** into Beefy's high-yield wS-SwapX vault
+4. **Earn positive yield spread** between borrowing costs and farming returns
 
-- **USDC.e-SwapX-Beefy Strategy**
-  * Similar workflow to wS strategy
-  * Handles USDC.e deposits and withdrawals
-  * Integrated with SwapX and Beefy vaults
-  * Full transaction tracking
+This sophisticated approach generates consistent returns regardless of token price movements, offering a low-risk DeFi strategy with these advantages:
 
-### Lending Protocol Integration
-- **Aave Supply Operations**
-  * Supply tokens to Aave protocol
-  * View supplied assets
-  * Track lending positions
-  * Earn interest on deposits
+- **Market Neutral Exposure**: Minimizes price risk for the borrowed asset
+- **Automatic Optimization**: Dynamically adjusts positions based on current market rates
+- **Leveraged Yield**: Amplifies returns through strategic borrowing
+- **Risk Managed**: Maintains safe health factors on Aave with built-in safeguards
 
-### Portfolio Management
-- **Beefy Portfolio Tracker**
-  * View all Beefy vault positions
-  * Track vault performance
-  * Monitor rewards and yields
-  * Real-time USD value calculations
+### Delta Neutral Commands
 
-### Token Operations
-- **Native S to wS wrapping**
-  * Wrap S tokens to wS for DeFi compatibility
-  * Unwrap wS back to S tokens
-  * Check S/wS balances
-- **Transfer tokens**
-- **Approve token spending**
-- **Basic ERC20 token interactions**
-
-### Wallet Operations
-- **Advanced Balance Checker**
-  * View native S balance
-  * Check wS, USDC.e and other token balances
-  * Track Aave supplied assets
-  * Monitor Beefy vault positions
-  * Balance verification before transactions
-- **Transaction tracking**
-- **Blockchain data queries**
-
-### Portfolio Management
-- Check wallet balances with USD values
-- View total portfolio value across all assets
-- Track supplied assets in Aave protocol
-- Monitor native token and ERC20 balances
-
-### Aave Protocol Integration
-- Supply assets (USDC.e, WETH)
-- Borrow against collateral
-- Check borrowing power and available borrowing power
-- View maximum borrowable amounts per asset
-- Monitor health factor and liquidation thresholds
-- Repay borrowed positions
-- Track lending APY rates
-
-### Token Operations
-- Supply USDC.e to Aave
-- Supply WETH to Aave
-- Withdraw supplied assets
-- Approve token spending
-- Check token balances and allowances
-
-### Supported Assets
-- Native S Token
-- USDC.e (Bridged USDC)
-- WETH (Wrapped ETH)
-- wS (Wrapped S)
-- aSonWETH (Aave Sonic WETH)
-- aSonUSDC.e (Aave Sonic USDC.e)
-
-## Usage Examples
-
-Check Aave Dashboard:
+Check strategy APY:
 ```
-aave dashboard
-lending dashboard
-aave positions
-lending protocol
+delta-neutral-apy
 ```
 
 Example Output:
+```
+## Delta Neutral Strategy - APY Breakdown
+
+💰 **Beefy wS-SwapX Vault APY:** +15.00%
+🏦 **Aave wS Borrow APY:** -4.00%
+
+🔄 **Net Strategy APY:** 11.00%
+
+✅ **Strategy is profitable!** The yield farming returns currently exceed borrowing costs.
+
+### How It Works
+1. Your USDC.e is supplied to Aave as collateral
+2. 50% of your borrowing power is used to borrow wS
+3. Borrowed wS is deployed in Beefy's wS-SwapX vault
+4. You earn the spread between borrowing costs and farming returns
+```
+
+Execute the delta neutral strategy with a specific USDC.e amount:
+```
+execute-delta-neutral 10
+```
+
+## Interactive Modes
+
+- **Chat Mode**: Interactive conversation with the AI assistant for strategy planning and execution
+- **Telegram Mode**: Access all features via Telegram for on-the-go DeFi management
+- **Demo Mode**: Guided walkthrough of key features and strategies
+- **Auto Mode**: Autonomous strategy execution and position management
+
+## Additional DeFi Strategies
+
+### wS-SwapX-Beefy Strategy (APY ~500%)
+* Pre-checks token balances for strategy eligibility
+* Deposit wS into SwapX vault
+* Receive LP tokens
+* Stake LP tokens in Beefy vault
+* Earn high APY rewards (~500%)
+* Withdrawal functionality
+* Detailed transaction links to SonicScan
+
+### USDC.e-SwapX-Beefy Strategy
+* Similar workflow to wS strategy
+* Handles USDC.e deposits and withdrawals
+* Integrated with SwapX and Beefy vaults
+* Full transaction tracking
+
+## Comprehensive Portfolio Management
+
+### Advanced Balance Checker
+* View native S balance
+* Check wS, USDC.e and other token balances
+* Track Aave supplied assets
+* Monitor Beefy vault positions
+* Balance verification before transactions
+* View total portfolio value across all assets
+
+### Beefy Portfolio Tracker
+* View all Beefy vault positions
+* Track vault performance
+* Monitor rewards and yields
+* Real-time USD value calculations
+
+## Aave Protocol Integration
+
+- **Complete Lending Dashboard**:
+  * View net worth and net APY
+  * Track health factor
+  * Monitor supplied and borrowed assets
+  * Check available borrowing power
+
+- **Lending Operations**:
+  * Supply assets (USDC.e, WETH)
+  * Borrow against collateral
+  * Repay borrowed positions
+  * View maximum borrowable amounts
+
+Example Aave Dashboard:
 ```
 📊 AAVE LENDING DASHBOARD
 
@@ -131,51 +134,53 @@ WETH: 0.001595 ($3.43)
 S: 6.02 ($3.43)
 ```
 
-Key Features of Aave Dashboard:
-- Shows total net worth
-- Displays Net APY (can be negative)
-- Tracks health factor
-- Lists supplied assets with their APY
-- Shows borrowed assets with negative APY
-- Provides available borrowing power
+## Token Operations
 
-## Delta Neutral Strategy
+- **Native S to wS wrapping**
+  * Wrap S tokens to wS for DeFi compatibility
+  * Unwrap wS back to S tokens
+  * Check S/wS balances
+- **Token Management**
+  * Transfer tokens
+  * Approve token spending
+  * Basic ERC20 token interactions
+  * Supply tokens to protocols
 
-Our advanced Delta Neutral strategy leverages Aave lending and Beefy yield farming to create a position that generates yield while minimizing price exposure:
+## Supported Assets
 
-1. Supply USDC.e to Aave as collateral
-2. Borrow wS tokens at 50% of borrowing capacity
-3. Deploy borrowed wS into Beefy's high-yield wS-SwapX vault
-4. Earn the spread between borrowing costs and farming yield
+- Native S Token
+- USDC.e (Bridged USDC)
+- WETH (Wrapped ETH)
+- wS (Wrapped S)
+- aSonWETH (Aave Sonic WETH)
+- aSonUSDC.e (Aave Sonic USDC.e)
+- Beefy Vault Tokens
 
-This approach aims to profit from the difference between borrowing APY and farming APY, creating a more stable return profile regardless of token price movements.
+## Getting Started
 
-### Delta Neutral Commands
+1. Copy `.env.example` to `.env` and fill in your own credentials:
+   ```
+   OPENAI_API_KEY="your_openai_api_key_here"
+   WALLET_PRIVATE_KEY="your_private_key_here"
+   TELEGRAM_BOT_TOKEN="your_bot_token_here" # Optional
+   ```
 
-Check strategy APY:
-```
-delta-neutral-apy
-```
+2. Install dependencies and run the project:
+   ```
+   npm install
+   npm start
+   ```
 
-Example Output:
-```
-## Delta Neutral Strategy - APY Breakdown
+3. Choose your preferred interaction mode:
+   - Chat mode for direct conversation
+   - Telegram mode for mobile access
+   - Demo mode for guided tour
+   - Auto mode for autonomous strategy execution
 
-💰 **Beefy wS-SwapX Vault APY:** +15.00%
-🏦 **Aave wS Borrow APY:** -4.00%
+## Security Features
 
-🔄 **Net Strategy APY:** 11.00%
-
-✅ **Strategy is profitable!** The yield farming returns currently exceed borrowing costs.
-
-### How It Works
-1. Your USDC.e is supplied to Aave as collateral
-2. 50% of your borrowing power is used to borrow wS
-3. Borrowed wS is deployed in Beefy's wS-SwapX vault
-4. You earn the spread between borrowing costs and farming returns
-```
-
-Execute strategy:
-```
-execute-delta-neutral 10
-```
+- Comprehensive balance checks before operations
+- Gas estimation for transactions
+- Safe approval limits
+- Transaction verification and monitoring
+- Health factor monitoring for lending positions
