@@ -16,6 +16,14 @@ export const SupplyWETHSchema = z
   })
   .strip();
 
+export const SupplySSchema = z
+  .object({
+    amount: z.string()
+      .transform(val => !val.includes('.') ? val + '.0' : val)
+      .describe("The amount of S (native Sonic) to supply to Aave (e.g., '10.0' for 10 S)"),
+  })
+  .strip();
+
 export const ApproveUSDCeSchema = z
   .object({
     amount: z.string().describe("The amount of USDC.e to approve for Aave protocol"),
@@ -44,12 +52,20 @@ export const WithdrawWETHSchema = z
   })
   .strip();
 
+export const WithdrawSSchema = z
+  .object({
+    amount: z.string()
+      .transform(val => !val.includes('.') ? val + '.0' : val)
+      .describe("The amount of S (native Sonic) to withdraw from Aave (e.g., '10.0' for 10 S)"),
+  })
+  .strip();
+
 export const BorrowSchema = z.object({
-  asset: z.enum(["USDC_E", "WETH", "WS"]),
+  asset: z.enum(["USDC_E", "WETH", "WS", "S"]),
   amount: z.string().min(1),
 });
 
 export const RepaySchema = z.object({
-  asset: z.enum(["USDC_E", "WETH", "WS"]),
+  asset: z.enum(["USDC_E", "WETH", "WS", "S"]),
   amount: z.string().min(1),
 });

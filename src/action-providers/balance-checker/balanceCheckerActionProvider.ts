@@ -18,37 +18,42 @@ import "reflect-metadata";
 // Import Aave and Beefy providers directly or use a service approach
 import { AaveSupplyActionProvider } from "../aave-supply/aaveSupplyActionProvider";
 import { BeefyPortfolioActionProvider } from "../beefy-portfolio/beefyPortfolioActionProvider";
-import { AAVE_POOL_ADDRESS, AAVE_POOL_ABI } from "../aave-supply/constants";
+import { 
+  AAVE_POOL_ADDRESS, 
+  AAVE_POOL_ABI, 
+  BORROWABLE_ASSETS,
+  AAVE_TOKENS
+} from "../aave-supply/constants";
 
-// Token addresses and info
+// Token addresses and info - using constants from aave-supply/constants.ts
 const TOKENS = {
   wS: {
-    address: "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
+    address: BORROWABLE_ASSETS.WS,
     symbol: "wS",
     decimals: 18,
     price: 0.57 // Fixed price in USD
   },
   USDC_E: {
-    address: "0x29219dd400f2Bf60E5a23d13Be72B486D4038894",
+    address: BORROWABLE_ASSETS.USDC_E,
     symbol: "USDC.e",
     decimals: 6,
     price: 1.00 // Stablecoin
   },
   WETH: {
-    address: "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b",
+    address: BORROWABLE_ASSETS.WETH,
     symbol: "WETH",
     decimals: 18,
     price: 2150.00 // Fixed price in USD
   },
   aSonWETH: {
-    address: "0xe18Ab82c81E7Eecff32B8A82B1b7d2d23F1EcE96",
+    address: AAVE_TOKENS.AWETH,
     symbol: "aSonWETH",
     decimals: 18,
     price: 2150.00 // Same as WETH
   },
   aSonUSDCE: {
-    address: "0x578Ee1ca3a8E1b54554Da1Bf7C583506C4CD11c6",
-    symbol: "aSonUSDC.e",
+    address: AAVE_TOKENS.AUSDC_E,
+    symbol: "aSonUSDCE",
     decimals: 6,
     price: 1.00 // Same as USDC.e
   }

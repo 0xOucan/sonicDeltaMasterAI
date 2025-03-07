@@ -9,6 +9,8 @@ import { encodeFunctionData, createPublicClient, http, parseUnits, formatUnits }
 import type { Hex } from "viem";
 import "reflect-metadata";
 import { sonic } from 'viem/chains';
+import * as ethers from 'ethers';
+import { InsufficientBalanceError } from "./errors";
 
 import {
   AAVE_POOL_ADDRESS,
@@ -18,24 +20,31 @@ import {
   ERC20_ABI,
   AAVE_WETH_GATEWAY,
   BORROWABLE_ASSETS,
+  AAVE_TOKENS,
+  S_ADDRESS,
+  AAVE_DEBT_TOKENS,
 } from "./constants";
 
 import {
   SupplyUSDCeSchema,
   SupplyWETHSchema,
+  SupplySSchema,
   ApproveUSDCeSchema,
   ApproveWETHSchema,
   WithdrawUSDCeSchema,
   WithdrawWETHSchema,
+  WithdrawSSchema,
   BorrowSchema,
   RepaySchema,
 } from "./schemas";
 
 import { checkTokenBalance } from "../balance-checker/balanceCheckerActionProvider";
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
+// SonicScan explorer base URL for transaction links
 const EXPLORER_BASE_URL = "https://sonicscan.org/tx/";
+
+// Helper function for sleeping/waiting
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Update the type definition
 type UserAccountData = readonly [
@@ -50,6 +59,11 @@ type UserAccountData = readonly [
 export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> {
   constructor() {
     super("aave-supply", []);
+  }
+
+  supportsNetwork(network: Network): boolean {
+    // Support EVM networks
+    return network.protocolFamily === "evm";
   }
 
   @CreateAction({
@@ -90,10 +104,12 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
           }),
         });
 
+        const approveReceipt = await walletProvider.waitForTransactionReceipt(approveTx);
+        const approveTxHash = approveReceipt.transactionHash;
+        
         response += `1. Approved ${args.amount} USDC.e for Aave protocol\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${approveTx}\n\n`;
+                    `   Transaction: ${EXPLORER_BASE_URL}${approveTxHash}\n\n`;
 
-        await walletProvider.waitForTransactionReceipt(approveTx);
         await sleep(5000); // Wait for state updates
       } catch (error) {
         console.error('Approval error:', error);
@@ -112,18 +128,21 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
           gas: BigInt(300000),
         });
 
+        const supplyReceipt = await walletProvider.waitForTransactionReceipt(supplyTx);
+        const supplyTxHash = supplyReceipt.transactionHash;
+        
         response += `2. Supplied ${args.amount} USDC.e to Aave\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${supplyTx}\n\n`;
+                    `   Transaction: ${EXPLORER_BASE_URL}${supplyTxHash}\n\n`;
 
-        await walletProvider.waitForTransactionReceipt(supplyTx);
+        response += `Successfully supplied ${args.amount} USDC.e to Aave. You are now earning interest on your deposit.`;
         return response;
       } catch (error) {
         console.error('Supply error:', error);
-        return `Failed to supply USDC.e to Aave: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        return `Failed to supply to Aave: ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
     } catch (error) {
-      console.error('Strategy execution error:', error);
-      return `Failed to execute strategy: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      console.error('SupplyUSDCe error:', error);
+      return `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 
@@ -199,6 +218,65 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
     } catch (error) {
       console.error('Strategy execution error:', error);
       return `Failed to execute strategy: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+
+  @CreateAction({
+    name: "aave-supply-s",
+    description: "Supply S (native Sonic) to Aave lending protocol (e.g., 'aave-supply-s 10.0')",
+    schema: SupplySSchema,
+  })
+  async supplyS(
+    walletProvider: EvmWalletProvider,
+    args: z.infer<typeof SupplySSchema>
+  ): Promise<string> {
+    try {
+      const amount = parseUnits(args.amount, 18);
+      const address = await walletProvider.getAddress();
+      let response = `Executing Aave S (native Sonic) supply strategy:\n\n`;
+
+      // For native tokens, we check the balance differently (use the address's balance)
+      const publicClient = createPublicClient({
+        chain: sonic,
+        transport: http()
+      });
+      
+      const balance = await publicClient.getBalance({
+        address: address as Hex
+      });
+      
+      if (balance < amount) {
+        return `Insufficient S balance. Required: ${formatUnits(amount, 18)}, Available: ${formatUnits(balance, 18)}`;
+      }
+      
+      // For native token (S), we don't need to approve, we supply directly with value
+      try {
+        const supplyTx = await walletProvider.sendTransaction({
+          to: AAVE_POOL_ADDRESS as Hex,
+          data: encodeFunctionData({
+            abi: AAVE_POOL_ABI,
+            functionName: "supply",
+            args: [S_ADDRESS as Hex, amount, address as Hex, 0],
+          }),
+          value: amount, // Send the S amount as transaction value
+          gas: BigInt(300000),
+        });
+
+        const supplyReceipt = await walletProvider.waitForTransactionReceipt(supplyTx);
+        const supplyTxHash = supplyReceipt.transactionHash;
+        
+        response += `1. Supplied ${args.amount} S to Aave\n` +
+                    `   Transaction: ${EXPLORER_BASE_URL}${supplyTxHash}\n\n`;
+
+        response += `Successfully supplied ${args.amount} S to Aave. You are now earning interest on your deposit.`;
+        return response;
+      } catch (error) {
+        console.error('Supply error:', error);
+        return `Failed to supply S to Aave: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      }
+    } catch (error) {
+      console.error('SupplyS error:', error);
+      return `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 
@@ -283,8 +361,46 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
   }
 
   @CreateAction({
+    name: "aave-withdraw-s",
+    description: "Withdraw S (native Sonic) from Aave lending protocol (e.g., 'aave-withdraw-s 10.0')",
+    schema: WithdrawSSchema,
+  })
+  async withdrawS(
+    walletProvider: EvmWalletProvider,
+    args: z.infer<typeof WithdrawSSchema>
+  ): Promise<string> {
+    try {
+      const amount = args.amount === 'max' ? 
+        BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff') : 
+        parseUnits(args.amount, 18);
+      
+      const address = await walletProvider.getAddress();
+      
+      // Execute withdraw transaction
+      const withdrawTx = await walletProvider.sendTransaction({
+        to: AAVE_POOL_ADDRESS as Hex,
+        data: encodeFunctionData({
+          abi: AAVE_POOL_ABI,
+          functionName: "withdraw",
+          args: [S_ADDRESS as Hex, amount, address as Hex],
+        }),
+        gas: BigInt(300000),
+      });
+
+      const withdrawReceipt = await walletProvider.waitForTransactionReceipt(withdrawTx);
+      const withdrawTxHash = withdrawReceipt.transactionHash;
+      
+      return `Successfully withdrew ${args.amount === 'max' ? 'all' : args.amount} S from Aave.\n\n` +
+             `Transaction: ${EXPLORER_BASE_URL}${withdrawTxHash}`;
+    } catch (error) {
+      console.error('Withdraw error:', error);
+      return `Failed to withdraw S from Aave: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+
+  @CreateAction({
     name: "borrow-from-aave",
-    description: "Borrow assets from Aave using your supplied collateral",
+    description: "Borrow assets from Aave",
     schema: BorrowSchema,
   })
   async borrowFromAave(
@@ -335,10 +451,11 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
         })
       });
 
-      await walletProvider.waitForTransactionReceipt(borrowTx);
+      const receipt = await walletProvider.waitForTransactionReceipt(borrowTx);
+      const txHash = receipt.transactionHash;
+      const txUrl = `${EXPLORER_BASE_URL}${txHash}`;
 
-      return `Successfully borrowed ${args.amount} ${args.asset}\n` +
-             `Transaction: ${EXPLORER_BASE_URL}${borrowTx}`;
+      return `Successfully borrowed ${args.amount} ${args.asset.replace('_', '.')}.\n\nTransaction: ${txUrl}\n\nYou can view the transaction details on SonicScan to verify the borrowing.`;
 
     } catch (error) {
       console.error('Borrow error:', error);
@@ -388,11 +505,11 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
         })
       });
 
-      await walletProvider.waitForTransactionReceipt(repayTx);
+      const receipt = await walletProvider.waitForTransactionReceipt(repayTx);
+      const txHash = receipt.transactionHash;
+      const txUrl = `${EXPLORER_BASE_URL}${txHash}`;
 
-      return `Successfully repaid ${args.amount} ${args.asset}\n` +
-             `Transaction: ${EXPLORER_BASE_URL}${repayTx}`;
-
+      return `Successfully repaid ${args.amount} ${args.asset.replace('_', '.')} to Aave.\n\nTransaction: ${txUrl}\n\nYou can view the transaction details on SonicScan to verify the repayment.`;
     } catch (error) {
       console.error('Repay error:', error);
       return `Failed to repay: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -465,12 +582,12 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
     name: "check-max-borrowable",
     description: "Check maximum borrowable amount for a specific asset",
     schema: z.object({
-      asset: z.enum(["USDC_E", "WETH", "WS"])
+      asset: z.enum(["USDC_E", "WETH", "WS", "S"])
     }),
   })
   async checkMaxBorrowable(
     walletProvider: EvmWalletProvider,
-    args: { asset: "USDC_E" | "WETH" | "WS" }
+    args: { asset: "USDC_E" | "WETH" | "WS" | "S" }
   ): Promise<string> {
     try {
       const address = await walletProvider.getAddress();
@@ -500,7 +617,7 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
         // Assuming WETH price is ~$2150
         maxBorrowAmount = (Number(maxBorrowUSD) / 2150).toFixed(6);
       } else {
-        // Assuming wS price is ~$0.57
+        // Assuming S/wS price is ~$0.57
         maxBorrowAmount = (Number(maxBorrowUSD) / 0.57).toFixed(6);
       }
 
@@ -592,27 +709,52 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
       const totalDebtUSD = Number(formatUnits(totalDebtBase, 8)).toFixed(2);
       const availableBorrowUSD = Number(formatUnits(availableBorrowsBase, 8)).toFixed(2);
       
-      // Get supplied assets (aTokens)
-      const tokens = {
+      // Define tokens with correct addresses from constants
+      type TokenInfo = {
+        aToken: string;
+        debtToken: string; // Added debt token address
+        address: string;
+        decimals: number;
+        supplyAPY: number;
+        borrowAPY: number;
+        priceUSD: number;
+      };
+      
+      type TokenSymbol = "USDC.e" | "WETH" | "S";
+      
+      const tokens: Record<TokenSymbol, TokenInfo> = {
         "USDC.e": {
-          aToken: "0x578Ee1ca3a8E1b54554Da1Bf7C583506C4CD11c6",
+          aToken: AAVE_TOKENS.AUSDC_E,
+          debtToken: AAVE_DEBT_TOKENS.USDC_E,
+          address: BORROWABLE_ASSETS.USDC_E,
           decimals: 6,
-          supplyAPY: 0.86,
-          borrowAPY: 3.21
+          supplyAPY: 0.82,
+          borrowAPY: 3.14,
+          priceUSD: 1
         },
         "WETH": {
-          aToken: "0xe18Ab82c81E7Eecff32B8A82B1b7d2d23F1EcE96",
+          aToken: AAVE_TOKENS.AWETH,
+          debtToken: AAVE_DEBT_TOKENS.WETH,
+          address: BORROWABLE_ASSETS.WETH,
           decimals: 18,
-          supplyAPY: 0.01,
-          borrowAPY: 0.04
+          supplyAPY: 0.13,
+          borrowAPY: 0.68,
+          priceUSD: 2150
+        },
+        "S": {
+          aToken: "", // S supply pool is closed
+          debtToken: AAVE_DEBT_TOKENS.S,
+          address: BORROWABLE_ASSETS.S,
+          decimals: 18,
+          supplyAPY: 0.36,
+          borrowAPY: 2.60,
+          priceUSD: 0.57
         }
       };
 
       // Calculate supplied assets and debt positions
       let suppliedAssets = [];
       let borrowedAssets = [];
-      let totalSupplyAPY = 0;
-      let totalBorrowAPY = 0;
       let weightedSupplyAPY = 0;
       let weightedBorrowAPY = 0;
       
@@ -620,15 +762,22 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
       for (const [symbol, info] of Object.entries(tokens)) {
         try {
           // Check supplied amount (aToken balance)
-          const suppliedBalance = await publicClient.readContract({
-            address: info.aToken as Hex,
-            abi: ERC20_ABI,
-            functionName: "balanceOf",
-            args: [address as Hex],
-          });
+          // Skip checking for S token since its supply pool is closed
+          let suppliedBalance = BigInt(0);
+          if (info.aToken) {  // Only check if aToken address exists
+            suppliedBalance = await publicClient.readContract({
+              address: info.aToken as Hex,
+              abi: ERC20_ABI,
+              functionName: "balanceOf",
+              args: [address as Hex],
+            }).catch(error => {
+              console.error(`Error fetching ${symbol} supply position:`, error);
+              return BigInt(0); // Return 0 balance on error
+            });
+          }
           
           const suppliedAmount = Number(formatUnits(suppliedBalance, info.decimals));
-          const suppliedUSD = suppliedAmount * (symbol === "USDC.e" ? 1 : symbol === "WETH" ? 2150 : 0.57);
+          const suppliedUSD = suppliedAmount * info.priceUSD;
           
           if (suppliedAmount > 0) {
             suppliedAssets.push({
@@ -638,21 +787,34 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
               apy: info.supplyAPY
             });
             
-            weightedSupplyAPY += (suppliedUSD / Number(totalCollateralUSD)) * info.supplyAPY;
+            // Prevent division by zero
+            if (Number(totalCollateralUSD) > 0) {
+              weightedSupplyAPY += (suppliedUSD / Number(totalCollateralUSD)) * info.supplyAPY;
+            }
           }
           
-          // Check borrowed amount for the asset
-          if (symbol === "USDC.e") {
-            const borrowedAmount = Number(totalDebtUSD); // Simplified - assuming only USDC.e borrowed
-            if (borrowedAmount > 0) {
-              borrowedAssets.push({
-                symbol,
-                amount: borrowedAmount,
-                usdValue: borrowedAmount,
-                apy: info.borrowAPY
-              });
-              
-              weightedBorrowAPY += info.borrowAPY;
+          // Also check debt balance for each asset
+          const debtBalance = await publicClient.readContract({
+            address: info.debtToken as Hex,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [address as Hex],
+          }).catch(() => BigInt(0));
+          
+          if (debtBalance > 0) {
+            const borrowedAmount = Number(formatUnits(debtBalance, info.decimals));
+            const borrowedUSD = borrowedAmount * info.priceUSD;
+            
+            borrowedAssets.push({
+              symbol,
+              amount: borrowedAmount,
+              usdValue: borrowedUSD,
+              apy: info.borrowAPY
+            });
+            
+            // Calculate weighted borrow APY
+            if (Number(totalDebtUSD) > 0) {
+              weightedBorrowAPY += (borrowedUSD / Number(totalDebtUSD)) * info.borrowAPY;
             }
           }
         } catch (error) {
@@ -674,15 +836,33 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
 - ❤️ **Health Factor:** ${Number(formatUnits(healthFactor, 18)).toFixed(2)}
 
 #### 💎 SUPPLIED ASSETS
-- 💰 **Total Balance:** $${totalCollateralUSD} (APY: ${weightedSupplyAPY.toFixed(2)}%)
-  - 💵 **USDC.e:** ${suppliedAssets[0].amount.toFixed(2)} ($${suppliedAssets[0].usdValue.toFixed(2)}) - APY: ${suppliedAssets[0].apy}%
-  - ⚡ **WETH:** ${suppliedAssets[1].amount.toFixed(6)} ($${suppliedAssets[1].usdValue.toFixed(2)}) - APY: ${suppliedAssets[1].apy}%
+- 💰 **Total Balance:** $${totalCollateralUSD} (APY: ${weightedSupplyAPY.toFixed(2)}%)`;
 
-#### 🏦 BORROWED ASSETS
-- 💸 **Total Balance:** $${totalDebtUSD} (APY: -${weightedBorrowAPY.toFixed(2)}%)
-  - 💵 **USDC.e:** ${borrowedAssets[0].amount.toFixed(2)} ($${borrowedAssets[0].usdValue.toFixed(2)}) - APY: -${borrowedAssets[0].apy}%
+      // Display each supplied asset
+      if (suppliedAssets.length > 0) {
+        for (const asset of suppliedAssets) {
+          const formattedAmount = asset.symbol === "USDC.e" ? asset.amount.toFixed(2) : asset.amount.toFixed(6);
+          dashboard += `\n  - ${asset.symbol === "USDC.e" ? "💵" : asset.symbol === "WETH" ? "⚡" : "🔷"} **${asset.symbol}:** ${formattedAmount} ($${asset.usdValue.toFixed(2)}) - APY: ${asset.apy}%`;
+        }
+      } else {
+        dashboard += `\n  - No supplied assets found`;
+      }
 
-#### 💪 BORROWING POWER
+      dashboard += `\n\n#### 🏦 BORROWED ASSETS
+- 💸 **Total Balance:** $${totalDebtUSD} (APY: -${weightedBorrowAPY.toFixed(2)}%)`;
+      
+      // Display each borrowed asset
+      if (borrowedAssets.length > 0) {
+        for (const asset of borrowedAssets) {
+          const formattedAmount = asset.symbol === "USDC.e" ? asset.amount.toFixed(2) : asset.amount.toFixed(6);
+          dashboard += `\n  - ${asset.symbol === "USDC.e" ? "💵" : asset.symbol === "WETH" ? "⚡" : "🔷"} **${asset.symbol}:** ${formattedAmount} ($${asset.usdValue.toFixed(2)}) - APY: -${asset.apy}%`;
+        }
+      } else {
+        dashboard += `\n  - No borrowed assets found`;
+      }
+      
+      // Add borrowing power section
+      dashboard += `\n\n#### 💪 BORROWING POWER
 - 📊 **Available:** $${availableBorrowUSD}
   - 💵 **USDC.e:** ${availableBorrowUSD} ($${availableBorrowUSD})
   - ⚡ **WETH:** ${(Number(availableBorrowUSD) / 2150).toFixed(6)} ($${availableBorrowUSD})
@@ -692,9 +872,106 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
 
     } catch (error) {
       console.error('Error generating Aave dashboard:', error);
-      return `Failed to generate Aave dashboard: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return `Failed to generate Aave dashboard: ${error instanceof Error ? error.message : 'Unknown error'}. Try checking your balances for a summary of your positions.`;
     }
   }
 
-  supportsNetwork = (network: Network) => network.protocolFamily === "evm";
+  private async repayDebt(
+    walletProvider: EvmWalletProvider,
+    amount: string | number, 
+    assetType: string | null = null
+  ) {
+    const address = await walletProvider.getAddress();
+    const publicClient = createPublicClient({
+      chain: sonic,
+      transport: http()
+    });
+    
+    // Determine which asset to repay
+    let assetToRepay: string;
+    if (assetType) {
+      // If assetType is specified, use it
+      assetToRepay = this.getAssetAddressBySymbol(assetType);
+      if (!assetToRepay) {
+        throw new Error(`Unknown asset type: ${assetType}. Please use a valid asset type.`);
+      }
+    } else {
+      // If no assetType is specified, default to USDC.e
+      assetToRepay = BORROWABLE_ASSETS.USDC_E;
+    }
+
+    // Convert amount to BigInt
+    const amountInWei = parseUnits(
+      amount.toString(),
+      assetToRepay === BORROWABLE_ASSETS.S ? 18 : 6
+    );
+
+    // Approve AAVE pool to spend tokens if not native S
+    if (assetToRepay !== BORROWABLE_ASSETS.S) {
+      // Check current balance first
+      const balance = await publicClient.readContract({
+        address: assetToRepay as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [address as `0x${string}`]
+      });
+
+      if (balance < amountInWei) {
+        throw new InsufficientBalanceError(
+          assetType || "USDC.e",
+          formatUnits(amountInWei, assetToRepay === BORROWABLE_ASSETS.S ? 18 : 6),
+          formatUnits(balance, assetToRepay === BORROWABLE_ASSETS.S ? 18 : 6)
+        );
+      }
+
+      // Approve the AAVE pool to spend tokens
+      const approveTx = await walletProvider.sendTransaction({
+        to: assetToRepay as `0x${string}`,
+        data: encodeFunctionData({
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [AAVE_POOL_ADDRESS as `0x${string}`, amountInWei]
+        })
+      });
+
+      await walletProvider.waitForTransactionReceipt(approveTx);
+    }
+
+    // Repay debt
+    const repayTx = await walletProvider.sendTransaction({
+      to: AAVE_POOL_ADDRESS as `0x${string}`,
+      data: encodeFunctionData({
+        abi: AAVE_POOL_ABI,
+        functionName: "repay",
+        args: [
+          assetToRepay as `0x${string}`,
+          amountInWei,
+          2n, // Variable interest rate
+          address as `0x${string}`
+        ]
+      }),
+      value: assetToRepay === BORROWABLE_ASSETS.S ? amountInWei : 0n
+    });
+
+    // Wait for transaction to complete
+    const receipt = await walletProvider.waitForTransactionReceipt(repayTx);
+    
+    return receipt.transactionHash;
+  }
+
+  private getAssetAddressBySymbol(symbol: string): string {
+    switch(symbol.toUpperCase()) {
+      case 'USDC.E':
+      case 'USDC_E':
+        return BORROWABLE_ASSETS.USDC_E;
+      case 'WETH':
+        return BORROWABLE_ASSETS.WETH;
+      case 'WS':
+        return BORROWABLE_ASSETS.WS;
+      case 'S':
+        return BORROWABLE_ASSETS.S;
+      default:
+        return '';
+    }
+  }
 }
