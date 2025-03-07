@@ -133,10 +133,25 @@ execute-delta-neutral 10
    TELEGRAM_BOT_TOKEN="your_bot_token_here" # Optional
    ```
 
-2. ⚙️ Install dependencies and run the project:
+2. ### 🚀 Project Setup Instructions
+
+To set up the project, follow these steps:
+
+1. 📦 Install dependencies:
    ```
    npm install
+   ```
+
+2. 🛠️ Build the project:
+   ```
+   npm run build
+   ```
+
+3. 🌟 Start the application:
+   ```
    npm start
+   ```
+
    ```
 
 3. 🎮 Choose your preferred interaction mode:
@@ -152,3 +167,24 @@ execute-delta-neutral 10
 - 🛡️ Safe approval limits
 - 📝 Transaction verification and monitoring
 - ❤️ Health factor monitoring for lending positions
+
+## 🚧 Current Development Status
+
+### ⚠️ Delta Neutral Strategy Limitations
+
+Our current Delta Neutral strategy using USDC.e on Sonic's Aave pool is temporarily paused due to:
+
+- 🏦 **Aave USDC.e Pool Capacity**: The pool is currently at full capacity
+- 🔬 **Ongoing Strategy Enhancements**:
+
+1. 🌐 **Alternative Protocol Strategies**:
+   * 💡 WETH Aave Strategies
+   * 🔗 Euler Protocol Delta Neutral Approaches
+   * 🏛️ Silo Protocol Innovative Strategies
+
+2. 🛠️ **Upcoming Improvements**:
+   * 📊 Multi-protocol liquidity optimization
+   * 🔒 Enhanced risk management techniques
+
+
+**Disclaimer**: Cryptocurrency investments involve risk. Always do your own research and consult with a financial advisor.
