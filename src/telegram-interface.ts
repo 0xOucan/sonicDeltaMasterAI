@@ -77,12 +77,21 @@ export class TelegramInterface {
 - \`check wallet balances\` - View all token balances and portfolio value
 - \`check beefy portfolio\` - View Beefy vault positions and APYs
 - \`aave dashboard\` - View Aave lending positions and metrics
+- \`machfi-dashboard\` - View MachFi lending positions and metrics
 
-## 🏦 Lending Operations (Aave)
+## 🏦 Lending Operations
+### Aave
 - \`aave-supply-usdce <amount>\` - Supply USDC.e to Aave
 - \`aave-supply-weth <amount>\` - Supply WETH to Aave
 - \`aave-withdraw-usdce <amount>\` - Withdraw USDC.e from Aave
 - \`aave-withdraw-weth <amount>\` - Withdraw WETH from Aave
+
+### MachFi
+- \`machfi-supply-usdce <amount>\` - Supply USDC.e to MachFi
+- \`machfi-supply-s <amount>\` - Supply native S to MachFi
+- \`machfi-borrow <asset> <amount>\` - Borrow from MachFi
+- \`machfi-repay <asset> <amount>\` - Repay borrowed assets
+- \`machfi-withdraw <asset> <amount>\` - Withdraw supplied assets
 
 ## 🔄 Token Operations
 - \`wrap <amount> S\` - Wrap S tokens to wS

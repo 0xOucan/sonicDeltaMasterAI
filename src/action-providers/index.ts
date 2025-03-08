@@ -8,6 +8,7 @@ import { StrategyManagerActionProvider } from './strategy-manager/strategyManage
 import { SWrapperActionProvider } from './swrapper/sWrapperActionProvider';
 import { BalanceCheckerActionProvider } from './balance-checker/balanceCheckerActionProvider';
 import { AaveSupplyActionProvider } from './aave-supply/aaveSupplyActionProvider';
+import { MachFiActionProvider } from './machfi/machfiActionProvider';
 
 // Re-export factory functions where available
 export { wsSwapXBeefyActionProvider } from './wsswapx-beefy/wsSwapXBeefyActionProvider';
@@ -23,6 +24,7 @@ export { StrategyManagerActionProvider };
 export { SWrapperActionProvider };
 export { BalanceCheckerActionProvider };
 export { AaveSupplyActionProvider };
+export { MachFiActionProvider };
 
 // Export types selectively
 export type { ActionProvider } from '@coinbase/agentkit';

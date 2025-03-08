@@ -27,6 +27,7 @@ import { usdceSwapXBeefyActionProvider } from "./action-providers/usdce-swapx-be
 import { AaveSupplyActionProvider } from "./action-providers/aave-supply";
 import { BeefyPortfolioActionProvider } from "./action-providers/beefy-portfolio";
 import { deltaNeutralActionProvider } from "./action-providers/delta-neutral";
+import { MachFiActionProvider } from "./action-providers/machfi/machfiActionProvider";
 
 dotenv.config();
 
@@ -127,6 +128,7 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
       new AaveSupplyActionProvider(),
       new BeefyPortfolioActionProvider(),
       deltaNeutralActionProvider(),
+      new MachFiActionProvider(),
     ];
 
     // Initialize LLM
@@ -178,6 +180,13 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
         - Execute USDC.e-SwapX-Beefy strategy
         - Execute Delta Neutral strategy (USDC.e collateral, borrow wS, deploy to Beefy)
         - Check APY for Delta Neutral strategy
+        
+        MachFi Lending Features:
+        - Supply USDC.e and native S to MachFi
+        - Borrow USDC.e and S from MachFi
+        - Repay borrowed assets
+        - Withdraw supplied assets
+        - View MachFi lending dashboard
         
         Get the wallet details first to see what tokens are available.
       `,
