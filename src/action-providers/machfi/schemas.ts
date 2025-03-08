@@ -35,4 +35,12 @@ export const WithdrawSchema = z
     asset: z.enum(["USDC_E", "S"]),
     amount: z.string().min(1),
   })
-  .describe("Withdraw supplied assets from MachFi"); 
+  .describe("Withdraw supplied assets from MachFi");
+
+export const BorrowUSDCeSchema = z.object({
+  amount: z.string().regex(/^\d*\.?\d+$/, "Amount must be a valid number"),
+});
+
+export const RepayUSDCeSchema = z.object({
+  amount: z.string().regex(/^\d*\.?\d+$/, "Amount must be a valid number"),
+}); 

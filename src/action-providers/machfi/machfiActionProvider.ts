@@ -11,7 +11,8 @@ import {
   http, 
   parseUnits,
   formatUnits,
-  type Hex 
+  type Hex,
+  type Address
 } from "viem";
 import { sonic } from 'viem/chains';
 import "reflect-metadata";
@@ -35,6 +36,8 @@ import {
   BorrowSchema,
   RepaySchema,
   WithdrawSchema,
+  BorrowUSDCeSchema,
+  RepayUSDCeSchema,
 } from "./schemas";
 
 import { checkTokenBalance } from "../balance-checker/balanceCheckerActionProvider";
@@ -57,6 +60,23 @@ function getTokenInfo(assetKey: string) {
   // Return default token info if not found
   return { symbol: "Unknown", decimals: 18, icon: "🪙" };
 }
+
+// Add this constant
+const MAXIMILLION_ADDRESS = "0x0Ab7eE6D8d5b94023aCa080995d0C8Ae25C42154";
+
+// Add Maximillion ABI
+const MAXIMILLION_ABI = [
+  {
+    "inputs": [
+      {"internalType": "address", "name": "borrower", "type": "address"},
+      {"internalType": "address", "name": "cSonic_", "type": "address"}
+    ],
+    "name": "repayBehalfExplicit",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+] as const;
 
 export class MachFiActionProvider extends ActionProvider<EvmWalletProvider> {
   constructor() {
@@ -172,14 +192,21 @@ export class MachFiActionProvider extends ActionProvider<EvmWalletProvider> {
 
       // Supply S directly to cSonic contract using mintAsCollateral
       try {
-        const supplyTx = await walletProvider.sendTransaction({
+        const txParams = {
           to: MACHFI_ADDRESSES.CSONIC as Hex,
           data: encodeFunctionData({
             abi: CTOKEN_ABI,
             functionName: "mintAsCollateral",
           }),
-          value: amount,
-          gas: BigInt(300000),
+          value: amount
+        };
+
+        // Estimate gas with buffer
+        const gasLimit = await this.estimateGas(walletProvider, txParams);
+        
+        const supplyTx = await walletProvider.sendTransaction({
+          ...txParams,
+          gas: gasLimit
         });
 
         response += `📥 Supplied ${args.amount} S to MachFi\n` +
@@ -252,15 +279,15 @@ export class MachFiActionProvider extends ActionProvider<EvmWalletProvider> {
           gas: BigInt(500000),
         });
 
-        response += `📤 Borrowed ${args.amount} ${args.asset} from MachFi\n` +
-                    `   Transaction: ${EXPLORER_BASE_URL}${borrowTx}\n\n`;
+        response = `✅ Successfully borrowed **${args.amount} ${args.asset}** from MachFi.\n\n` +
+                   `📤 **Transaction Details:** [View Transaction](${EXPLORER_BASE_URL}${borrowTx})\n\n` +
+                   `If you need any further assistance, just let me know!`;
 
         await walletProvider.waitForTransactionReceipt(borrowTx);
-        response += `✅ Successfully borrowed ${args.amount} ${args.asset} from MachFi.`;
         return response;
       } catch (error) {
         console.error('Borrow error:', error);
-        return `Failed to borrow from MachFi: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        return `❌ Failed to borrow from MachFi: ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
     } catch (error) {
       console.error('Strategy execution error:', error);
@@ -472,79 +499,104 @@ export class MachFiActionProvider extends ActionProvider<EvmWalletProvider> {
   ): Promise<string> {
     try {
       const address = await walletProvider.getAddress();
-      const decimals = args.asset === "USDC_E" ? 6 : 18;
-      const amount = parseUnits(args.amount, decimals);
+      const publicClient = createPublicClient({
+        chain: sonic,
+        transport: http()
+      });
+
+      // Get current borrow balance
       const repayMarket = args.asset === "USDC_E" ? 
         MACHFI_ADDRESSES.CUSDC : 
         MACHFI_ADDRESSES.CSONIC;
 
+      const borrowBalance = await publicClient.readContract({
+        address: repayMarket as Address,
+        abi: CTOKEN_ABI,
+        functionName: "borrowBalanceStored",
+        args: [address as Address]
+      }) as bigint;
+
+      const decimals = args.asset === "USDC_E" ? 6 : 18;
+      let amountToRepay: bigint;
+
+      // If amount contains the word "debt", repay full balance
+      if (args.amount.toLowerCase().includes('debt')) {
+        amountToRepay = borrowBalance;
+      } else {
+        amountToRepay = parseUnits(args.amount, decimals);
+        // Check if trying to repay more than borrowed
+        if (amountToRepay > borrowBalance) {
+          return `Cannot repay more than borrowed. Current ${args.asset} debt: ${formatUnits(borrowBalance, decimals)}`;
+        }
+      }
+
       let response = `Executing MachFi repay strategy:\n\n`;
 
       if (args.asset === "USDC_E") {
-        // For USDC.e, need to approve first
+        // USDC.e repayment logic
         try {
           const approveTx = await walletProvider.sendTransaction({
             to: TOKEN_ADDRESSES.USDC_E as Hex,
             data: encodeFunctionData({
               abi: ERC20_ABI,
               functionName: "approve",
-              args: [repayMarket as Hex, amount],
+              args: [repayMarket as Hex, amountToRepay],
             }),
           });
 
-          response += `1. Approved ${args.amount} USDC.e for repayment\n` +
-                      `   Transaction: ${EXPLORER_BASE_URL}${approveTx}\n\n`;
+          response += `1. ✅ Approved ${formatUnits(amountToRepay, decimals)} USDC.e for repayment\n` +
+                      `   🔍 Transaction: ${EXPLORER_BASE_URL}${approveTx}\n\n`;
 
           await walletProvider.waitForTransactionReceipt(approveTx);
           await sleep(3000);
-        } catch (error) {
-          console.error('Approval error:', error);
-          return `Failed to approve USDC.e: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        }
 
-        // Repay USDC.e
-        try {
           const repayTx = await walletProvider.sendTransaction({
             to: repayMarket as Hex,
             data: encodeFunctionData({
               abi: CTOKEN_ABI,
               functionName: "repayBorrow",
-              args: [amount],
+              args: [amountToRepay],
             }),
             gas: BigInt(300000),
           });
 
-          response += `2. Repaid ${args.amount} USDC.e to MachFi\n` +
-                      `   Transaction: ${EXPLORER_BASE_URL}${repayTx}`;
+          response += `2. 💰 Repaid ${formatUnits(amountToRepay, decimals)} USDC.e to MachFi\n` +
+                      `   🔍 Transaction: ${EXPLORER_BASE_URL}${repayTx}`;
           
           await walletProvider.waitForTransactionReceipt(repayTx);
-          return response;
+          return `✅ Successfully repaid **${formatUnits(amountToRepay, decimals)} USDC.e** towards your debt in MachFi.\n\n` +
+                 `1. 📝 **Approval Transaction:** [View Approval](${EXPLORER_BASE_URL}${approveTx})\n` +
+                 `2. 💸 **Repayment Transaction:** [View Repayment](${EXPLORER_BASE_URL}${repayTx})\n\n` +
+                 `If you need any further assistance, feel free to ask!`;
         } catch (error) {
-          console.error('Repay error:', error);
-          return `Failed to repay USDC.e: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          console.error('USDC.e repay error:', error);
+          return `❌ Failed to repay USDC.e: ${error instanceof Error ? error.message : 'Unknown error'}`;
         }
       } else {
-        // For native S, use payable repayBorrow
+        // Native S repayment logic
         try {
-          const repayTx = await walletProvider.sendTransaction({
-            to: repayMarket as Hex,
+          const tx = await walletProvider.sendTransaction({
+            to: MAXIMILLION_ADDRESS,
+            value: amountToRepay,
             data: encodeFunctionData({
-              abi: CTOKEN_ABI,
-              functionName: "repayBorrow",
-              args: [BigInt(0)],
-            }),
-            value: amount,
-            gas: BigInt(300000),
+              abi: MAXIMILLION_ABI,
+              functionName: 'repayBehalfExplicit',
+              args: [
+                address as Address, 
+                MACHFI_ADDRESSES.CSONIC as Address
+              ]
+            })
           });
 
-          response += `Repaid ${args.amount} S to MachFi\n` +
-                      `Transaction: ${EXPLORER_BASE_URL}${repayTx}`;
-          
-          await walletProvider.waitForTransactionReceipt(repayTx);
+          response = `✅ Successfully repaid **${formatUnits(amountToRepay, 18)} S** towards your debt in MachFi.\n\n` +
+                     `📤 **Transaction Details:** [View Transaction](${EXPLORER_BASE_URL}${tx})\n\n` +
+                     `If you need any further assistance, feel free to ask!`;
+
+          await walletProvider.waitForTransactionReceipt(tx);
           return response;
         } catch (error) {
-          console.error('Repay error:', error);
-          return `Failed to repay S: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          console.error('S repay error:', error);
+          return `❌ Failed to repay S: ${error instanceof Error ? error.message : 'Unknown error'}`;
         }
       }
     } catch (error) {
@@ -612,6 +664,162 @@ export class MachFiActionProvider extends ActionProvider<EvmWalletProvider> {
     } catch (error) {
       console.error('Strategy execution error:', error);
       return `Failed to execute withdraw: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+
+  @CreateAction({
+    name: "machfi-borrow-usdce",
+    description: "Borrow USDC.e from MachFi lending protocol (e.g., 'machfi-borrow-usdce 1.0')",
+    schema: BorrowUSDCeSchema,
+  })
+  async borrowUSDCe(
+    walletProvider: EvmWalletProvider,
+    args: z.infer<typeof BorrowUSDCeSchema>
+  ): Promise<string> {
+    try {
+      const address = await walletProvider.getAddress();
+      const amount = parseUnits(args.amount, 6); // USDC.e has 6 decimals
+      let response = `Executing MachFi USDC.e borrow strategy:\n\n`;
+
+      // Check borrowing power first
+      const publicClient = createPublicClient({
+        chain: sonic,
+        transport: http()
+      });
+
+      const [errorCode, liquidity] = await publicClient.readContract({
+        address: MACHFI_ADDRESSES.COMPTROLLER as Hex,
+        abi: COMPTROLLER_ABI,
+        functionName: "getAccountLiquidity",
+        args: [address as Hex]
+      }) as [bigint, bigint, bigint];
+
+      if (errorCode !== BigInt(0)) {
+        return `Failed to get account liquidity. Error code: ${errorCode}`;
+      }
+
+      if (liquidity < amount) {
+        return `Insufficient borrowing power. Available: ${formatUnits(liquidity, 6)} USDC.e`;
+      }
+
+      // Execute borrow
+      const txParams = {
+        to: MACHFI_ADDRESSES.CUSDC as Hex,
+        data: encodeFunctionData({
+          abi: CTOKEN_ABI,
+          functionName: "borrow",
+          args: [amount],
+        })
+      };
+
+      // Estimate gas with buffer
+      const gasLimit = await this.estimateGas(walletProvider, txParams);
+
+      const borrowTx = await walletProvider.sendTransaction({
+        ...txParams,
+        gas: gasLimit
+      });
+
+      response = `✅ Successfully borrowed **${args.amount} USDC.e** from MachFi.\n\n` +
+                 `📤 **Transaction Details:** [View Transaction](${EXPLORER_BASE_URL}${borrowTx})\n\n` +
+                 `If you need any further assistance, just let me know!`;
+
+      await walletProvider.waitForTransactionReceipt(borrowTx);
+      return response;
+
+    } catch (error) {
+      console.error('Borrow error:', error);
+      return `❌ Failed to borrow USDC.e: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+
+  @CreateAction({
+    name: "machfi-repay-usdce",
+    description: "Repay USDC.e debt to MachFi lending protocol (e.g., 'machfi-repay-usdce 1.0')",
+    schema: RepayUSDCeSchema,
+  })
+  async repayUSDCe(
+    walletProvider: EvmWalletProvider,
+    args: z.infer<typeof RepayUSDCeSchema>
+  ): Promise<string> {
+    try {
+      const amount = parseUnits(args.amount, 6);
+      let response = `Executing MachFi USDC.e repay strategy:\n\n`;
+
+      // First approve USDC.e spending
+      const approveTxParams = {
+        to: TOKEN_ADDRESSES.USDC_E as Hex,
+        data: encodeFunctionData({
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [MACHFI_ADDRESSES.CUSDC as Hex, amount],
+        })
+      };
+
+      const approveGasLimit = await this.estimateGas(walletProvider, approveTxParams);
+      
+      const approveTx = await walletProvider.sendTransaction({
+        ...approveTxParams,
+        gas: approveGasLimit
+      });
+
+      response += `1. Approved ${args.amount} USDC.e for repayment\n` +
+                  `   Transaction: ${EXPLORER_BASE_URL}${approveTx}\n\n`;
+
+      await walletProvider.waitForTransactionReceipt(approveTx);
+      await sleep(3000); // Wait for state updates
+
+      // Then repay the borrow
+      const repayTxParams = {
+        to: MACHFI_ADDRESSES.CUSDC as Hex,
+        data: encodeFunctionData({
+          abi: CTOKEN_ABI,
+          functionName: "repayBorrow",
+          args: [amount],
+        })
+      };
+
+      const repayGasLimit = await this.estimateGas(walletProvider, repayTxParams);
+
+      const repayTx = await walletProvider.sendTransaction({
+        ...repayTxParams,
+        gas: repayGasLimit
+      });
+
+      response += `2. Repaid ${args.amount} USDC.e to MachFi\n` +
+                  `   Transaction: ${EXPLORER_BASE_URL}${repayTx}`;
+      
+      await walletProvider.waitForTransactionReceipt(repayTx);
+      return response;
+
+    } catch (error) {
+      console.error('Repay error:', error);
+      return `Failed to repay USDC.e: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+
+  private async estimateGas(walletProvider: EvmWalletProvider, txParams: any) {
+    try {
+      // Create a public client to estimate gas
+      const publicClient = createPublicClient({
+        chain: sonic,
+        transport: http()
+      });
+
+      // Estimate gas using the public client
+      const gasEstimate = await publicClient.estimateGas({
+        account: await walletProvider.getAddress() as Address,
+        ...txParams
+      });
+
+      // Add 20% buffer to gas estimate
+      return (gasEstimate * 120n) / 100n;
+    } catch (error: unknown) {
+      // Fix the error type handling
+      if (error instanceof Error) {
+        throw new Error(`Failed to estimate gas: ${error.message}`);
+      }
+      throw new Error('Failed to estimate gas: Unknown error');
     }
   }
 
