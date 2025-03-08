@@ -434,14 +434,22 @@ export class MachFiActionProvider extends ActionProvider<EvmWalletProvider> {
         }
       }
 
-      dashboard += `\n#### 🏦 BORROWED ASSETS\n`;
-      dashboard += `- 💸 **Total Balance:** $${totalBorrowedUSD.toFixed(2)} (APY: ${weightedBorrowAPY.toFixed(2)}%)\n`;
+      // Create borrowed assets array for formatDashboard
+      const borrowedAssets = Object.entries(marketData)
+        .filter(([_, data]) => (data as any).borrowUsdValue > 0)
+        .map(([_, data]) => {
+          const assetData = data as any;
+          return {
+            icon: assetData.icon,
+            symbol: assetData.symbol,
+            amount: Number(assetData.borrowFormatted).toFixed(6),
+            valueUSD: assetData.borrowUsdValue,
+            apy: -assetData.borrowAPR // Make APY negative to indicate cost
+          };
+        });
 
-      for (const [assetKey, data] of Object.entries(marketData)) {
-        if (data.borrowUsdValue > 0) {
-          dashboard += `  - ${data.icon} **${data.symbol}:** ${Number(data.borrowFormatted).toFixed(6)} ($${data.borrowUsdValue.toFixed(2)}) - APY: ${data.borrowAPR.toFixed(2)}%\n`;
-        }
-      }
+      // Format the borrowed assets section with negative values
+      dashboard += this.formatDashboard(borrowedAssets, totalBorrowedUSD, weightedBorrowAPY);
 
       // Add borrowing power section
       const borrowLimit = totalSuppliedUSD * 0.8; // Using 80% as example LTV
@@ -486,6 +494,17 @@ export class MachFiActionProvider extends ActionProvider<EvmWalletProvider> {
       console.error('Error generating dashboard:', error);
       return `Failed to generate MachFi dashboard: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
+  }
+
+  // Integrated from machfiDashboard.ts
+  private formatDashboard(borrowedAssets: any[], totalDebt: number, weightedBorrowAPY: number) {
+    return `
+#### 🏦 BORROWED ASSETS
+- 💸 **Total Debt:** -$${totalDebt.toFixed(2)} (APY: ${weightedBorrowAPY.toFixed(2)}%)
+  ${borrowedAssets.map(asset => 
+    `- ${asset.icon} **${asset.symbol}:** -${asset.amount} (-$${asset.valueUSD.toFixed(2)}) - APY: ${Math.abs(asset.apy).toFixed(2)}%`
+  ).join('\n')}
+`;
   }
 
   @CreateAction({

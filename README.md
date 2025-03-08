@@ -2,21 +2,33 @@
 
 An intelligent 🤖 blockchain assistant for Sonic Network, specializing in **Delta Neutral DeFi strategies** with comprehensive portfolio management and advanced yield optimization capabilities.
 
-## 🔥 Core Feature: Delta Neutral Strategy
+## 🔥 Core Features: Delta Neutral Strategies
 
-Our flagship Delta Neutral strategy delivers stable, market-neutral yields by balancing lending and yield farming positions:
+### 🏦 Aave Delta Neutral Strategy
+
+Our original Delta Neutral strategy delivers stable, market-neutral yields by balancing lending and yield farming positions:
 
 1. 💰 **Supply USDC.e to Aave** as collateral
 2. 🏦 **Borrow wS tokens** at 50% of borrowing capacity
 3. 🌾 **Deploy borrowed wS** into Beefy's high-yield wS-SwapX vault
 4. 💸 **Earn positive yield spread** between borrowing costs and farming returns
 
-This sophisticated approach generates consistent returns regardless of token price movements, offering a low-risk DeFi strategy with these advantages:
+### 🆕 MachFi Delta Neutral Strategy
+
+Our new MachFi-based Delta Neutral strategy offers an alternative approach:
+
+1. 💰 **Supply USDC.e to MachFi** as collateral
+2. 🏦 **Borrow S tokens** at 50% of borrowing capacity
+3. 🔄 **Wrap S tokens to wS**
+4. 🌾 **Deploy wS** into Beefy's high-yield wS-SwapX vault
+5. 💸 **Earn positive yield spread** between borrowing costs and farming returns
+
+Both strategies offer these advantages:
 
 - 🛡️ **Market Neutral Exposure**: Minimizes price risk for the borrowed asset
 - 🤖 **Automatic Optimization**: Dynamically adjusts positions based on current market rates
 - 📈 **Leveraged Yield**: Amplifies returns through strategic borrowing
-- ⚖️ **Risk Managed**: Maintains safe health factors on Aave with built-in safeguards
+- ⚖️ **Risk Managed**: Maintains safe health factors with built-in safeguards
 
 ### 🎯 Delta Neutral Commands
 
@@ -27,20 +39,22 @@ delta-neutral-apy
 
 Example Output:
 ```
-## 📊 Delta Neutral Strategy - APY Breakdown
+## 📊 MachFi-Beefy Delta Neutral Strategy - APY Breakdown
 
 💰 **Beefy wS-SwapX Vault APY:** +15.00%
-🏦 **Aave wS Borrow APY:** -4.00%
+🏦 **MachFi S Borrow APY:** -4.00%
+⚖️ **Effective Borrow Cost (using 50% LTV):** -2.00%
 
-🔄 **Net Strategy APY:** 11.00%
+🔄 **Net Strategy APY:** 13.00%
 
 ✅ **Strategy is profitable!** The yield farming returns currently exceed borrowing costs.
 
 ### 🔍 How It Works
-1. 💰 Your USDC.e is supplied to Aave as collateral
-2. 🏦 50% of your borrowing power is used to borrow wS
-3. 🌾 Borrowed wS is deployed in Beefy's wS-SwapX vault
-4. 💸 You earn the spread between borrowing costs and farming returns
+1. 💰 Your USDC.e is supplied to MachFi as collateral
+2. 🏦 50% of your borrowing power is used to borrow S tokens
+3. 🔄 S tokens are wrapped to wS
+4. 🌾 wS is deployed in Beefy's wS-SwapX vault
+5. 💸 You earn the spread between borrowing costs and farming returns
 ```
 
 Execute the delta neutral strategy with a specific USDC.e amount:
@@ -88,7 +102,9 @@ execute-delta-neutral 10
 * 💰 Monitor rewards and yields
 * 💱 Real-time USD value calculations
 
-## 🏦 Aave Protocol Integration
+## 🏦 Lending Protocol Integrations
+
+### 🏦 Aave Protocol Integration
 
 - 📊 **Complete Lending Dashboard**:
   * 💰 View net worth and net APY
@@ -101,6 +117,21 @@ execute-delta-neutral 10
   * 🏷️ Borrow against collateral
   * 💸 Repay borrowed positions
   * 📊 View maximum borrowable amounts
+
+### 🆕 MachFi Protocol Integration
+
+- 📊 **Comprehensive Lending Dashboard**:
+  * 💰 Track net worth and portfolio APY
+  * ❤️ Monitor health factor and risk level
+  * 📈 View supplied assets with APYs
+  * 📉 Monitor borrowed assets with negative values for clear visualization
+  * 💪 Check available borrowing power in USD and token amounts
+
+- 🏦 **Lending Operations**:
+  * 💰 Supply collateral (USDC.e, S)
+  * 🏷️ Borrow assets against your collateral
+  * 💸 Repay borrowed positions
+  * 📤 Withdraw supplied assets
 
 ## 🪙 Token Operations
 
@@ -122,6 +153,7 @@ execute-delta-neutral 10
 - 🔷 wS (Wrapped S)
 - 📈 aSonWETH (Aave Sonic WETH)
 - 💰 aSonUSDC.e (Aave Sonic USDC.e)
+- 🏦 cS, cUSDC.e (MachFi tokens)
 - 🐮 Beefy Vault Tokens
 
 ## 🚀 Getting Started
@@ -170,21 +202,23 @@ To set up the project, follow these steps:
 
 ## 🚧 Current Development Status
 
-### ⚠️ Delta Neutral Strategy Limitations
+### 📊 Delta Neutral Strategy Options
 
-Our current Delta Neutral strategy using USDC.e on Sonic's Aave pool is temporarily paused due to:
+We currently offer two delta neutral strategy options:
 
-- 🏦 **Aave USDC.e Pool Capacity**: The pool is currently at full capacity
-- 🔬 **Ongoing Strategy Enhancements**:
+1. 🏦 **Aave-Based Strategy**:
+   * 💰 Uses Aave for supplying USDC.e collateral and borrowing wS
+   * 🌐 Dependent on USDC.e pool capacity
 
-1. 🌐 **Alternative Protocol Strategies**:
-   * 💡 WETH Aave Strategies
-   * 🔗 Euler Protocol Delta Neutral Approaches
-   * 🏛️ Silo Protocol Innovative Strategies
+2. 🆕 **MachFi-Based Strategy**:
+   * 💰 Uses MachFi for supplying USDC.e collateral
+   * 🏦 Borrows native S tokens and wraps to wS
+   * 🔍 May offer different APYs and risk profiles
 
-2. 🛠️ **Upcoming Improvements**:
+3. 🛠️ **Upcoming Improvements**:
    * 📊 Multi-protocol liquidity optimization
    * 🔒 Enhanced risk management techniques
+   * 🔄 Automated position rebalancing
 
 
 **Disclaimer**: Cryptocurrency investments involve risk. Always do your own research and consult with a financial advisor.
