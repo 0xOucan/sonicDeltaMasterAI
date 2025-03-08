@@ -44,7 +44,9 @@
     "test:types": "tsd --files src/tests/types.test-d.ts",
     "prepack": "tsc",
     "docs": "typedoc --entryPoints ./src --entryPointStrategy expand --exclude ./src/tests/**/*.ts",
-    "docs:serve": "http-server ./docs"
+    "docs:serve": "http-server ./docs",
+    "sonic:swap": "ts-node scripts/executeSonicActions.ts"
+
   },
   "jest": {
     "preset": "ts-jest",

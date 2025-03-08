@@ -43,7 +43,6 @@ export class SonicActionProvider extends ActionProvider<EvmWalletProvider> {
     });
 
     const path = [tokenIn, tokenOut];
-    
     const amounts = await publicClient.readContract({
       address: SONIC_ROUTER_ADDRESS as Hex,
       abi: SONIC_ROUTER_ABI,
@@ -63,8 +62,8 @@ export class SonicActionProvider extends ActionProvider<EvmWalletProvider> {
       }),
     });
 
-    await walletProvider.waitForTransactionReceipt(approveTx);
 
+    await walletProvider.waitForTransactionReceipt(approveTx);
     // Execute swap
     const swapTx = await walletProvider.sendTransaction({
       to: SONIC_ROUTER_ADDRESS as Hex,
@@ -88,7 +87,6 @@ export class SonicActionProvider extends ActionProvider<EvmWalletProvider> {
     // 1. Call ODOS API to get the optimal route
     // 2. Get the encoded swap data
     // 3. Execute the swap through the ODOS router
-    
     const address = await walletProvider.getAddress();
 
     // Approve ODOS router
@@ -132,12 +130,25 @@ export class SonicActionProvider extends ActionProvider<EvmWalletProvider> {
       const slippage = args.slippage || 0.5;
       const useOdos = args.useOdos || false;
 
-      const txHash = useOdos 
-        ? await this.handleOdosSwap(walletProvider, args.tokenIn, args.tokenOut, amountIn)
-        : await this.handleSonicSwap(walletProvider, args.tokenIn, args.tokenOut, amountIn, slippage);
+      //const txHash = useOdos
+      //  ? await this.handleOdosSwap(walletProvider, args.tokenIn, args.tokenOut, amountIn)
+      //  : await this.handleSonicSwap(walletProvider, args.tokenIn, args.tokenOut, amountIn, slippage);
 
-      await walletProvider.waitForTransactionReceipt(txHash);
-      
+     
+      let txHash;
+      if (useOdos) {
+      console.log(144)
+        txHash = await this.handleOdosSwap(walletProvider, args.tokenIn, args.tokenOut, amountIn)
+      } else {
+        console.log(147)
+        txHash = await this.handleSonicSwap(walletProvider, args.tokenIn, args.tokenOut, amountIn, slippage);
+      }
+
+      await walletProvider.waitForTransactionReceipt(txHash as `0x${string}`);
+
+      console.log(153);
+      console.log(txHash);
+
       return `Swap executed successfully!\nTransaction: https://sonicscan.org/tx/${txHash}`;
     } catch (error) {
       if (error instanceof SonicSwapError) {
