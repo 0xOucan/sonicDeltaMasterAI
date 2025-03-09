@@ -129,3 +129,9 @@ export const ERC20_ABI = [
     stateMutability: "view"
   }
 ] as const;
+
+// Constants specific to wsSwapXBeefyActionProvider
+export const WRAP_S_ADDRESS = "0x..."; // Replace with actual address
+export const S_TOKEN_ABI = [
+  // ABI entries
+];

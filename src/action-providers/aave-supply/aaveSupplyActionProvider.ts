@@ -828,27 +828,27 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
         0;
       
       // Format the dashboard output
-      let dashboard = `### 📊 AAVE LENDING DASHBOARD
+      let dashboard = `# 🏦 Aave Lending Dashboard
 
-#### 📈 OVERVIEW
+## 📊 Overview
 - 💰 **Net Worth:** $${(Number(totalCollateralUSD) - Number(totalDebtUSD)).toFixed(2)}
-- 📊 **Net APY:** ${netAPY.toFixed(2)}%
+- 📈 **Net APY:** ${netAPY.toFixed(2)}%
 - ❤️ **Health Factor:** ${Number(formatUnits(healthFactor, 18)).toFixed(2)}
 
-#### 💎 SUPPLIED ASSETS
-- 💰 **Total Balance:** $${totalCollateralUSD} (APY: ${weightedSupplyAPY.toFixed(2)}%)`;
+## 💎 Supplied Assets
+- 🏦 **Total Balance:** $${totalCollateralUSD} (APY: ${weightedSupplyAPY.toFixed(2)}%)`;
 
       // Display each supplied asset
       if (suppliedAssets.length > 0) {
         for (const asset of suppliedAssets) {
           const formattedAmount = asset.symbol === "USDC.e" ? asset.amount.toFixed(2) : asset.amount.toFixed(6);
-          dashboard += `\n  - ${asset.symbol === "USDC.e" ? "💵" : asset.symbol === "WETH" ? "⚡" : "🔷"} **${asset.symbol}:** ${formattedAmount} ($${asset.usdValue.toFixed(2)}) - APY: ${asset.apy}%`;
+          dashboard += `\n  - ${asset.symbol === "USDC.e" ? "💵" : asset.symbol === "WETH" ? "⚡" : "🔷"} **${asset.symbol}:** ${formattedAmount} ($${asset.usdValue.toFixed(2)}) - APY: +${asset.apy}%`;
         }
       } else {
         dashboard += `\n  - No supplied assets found`;
       }
 
-      dashboard += `\n\n#### 🏦 BORROWED ASSETS
+      dashboard += `\n\n## 🏦 Borrowed Assets
 - 💸 **Total Balance:** $${totalDebtUSD} (APY: -${weightedBorrowAPY.toFixed(2)}%)`;
       
       // Display each borrowed asset
@@ -862,7 +862,7 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
       }
       
       // Add borrowing power section
-      dashboard += `\n\n#### 💪 BORROWING POWER
+      dashboard += `\n\n## 💪 Borrowing Power
 - 📊 **Available:** $${availableBorrowUSD}
   - 💵 **USDC.e:** ${availableBorrowUSD} ($${availableBorrowUSD})
   - ⚡ **WETH:** ${(Number(availableBorrowUSD) / 2150).toFixed(6)} ($${availableBorrowUSD})
@@ -972,6 +972,52 @@ export class AaveSupplyActionProvider extends ActionProvider<EvmWalletProvider> 
         return BORROWABLE_ASSETS.S;
       default:
         return '';
+    }
+  }
+
+  // Add a public method to get Aave account data
+  async getAaveAccountData(walletProvider: EvmWalletProvider): Promise<{
+    netWorth: number;
+    totalCollateral: number;
+    totalDebt: number;
+  }> {
+    try {
+      const address = await walletProvider.getAddress();
+      const publicClient = createPublicClient({
+        chain: sonic,
+        transport: http()
+      });
+
+      // Get user account data
+      const accountData = await publicClient.readContract({
+        address: AAVE_POOL_ADDRESS as Hex,
+        abi: AAVE_POOL_ABI,
+        functionName: 'getUserAccountData',
+        args: [address as Hex]
+      }) as UserAccountData;
+
+      const [
+        totalCollateralBase,
+        totalDebtBase
+      ] = accountData;
+
+      // Format values to match UI
+      const totalCollateralUSD = Number(formatUnits(totalCollateralBase, 8));
+      const totalDebtUSD = Number(formatUnits(totalDebtBase, 8));
+      const netWorth = totalCollateralUSD - totalDebtUSD;
+
+      return {
+        netWorth,
+        totalCollateral: totalCollateralUSD,
+        totalDebt: totalDebtUSD
+      };
+    } catch (error) {
+      console.error('Error getting Aave account data:', error);
+      return {
+        netWorth: 0,
+        totalCollateral: 0,
+        totalDebt: 0
+      };
     }
   }
 }

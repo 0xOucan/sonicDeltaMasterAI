@@ -41,11 +41,11 @@ Example Output:
 ```
 ## 📊 MachFi-Beefy Delta Neutral Strategy - APY Breakdown
 
-💰 **Beefy wS-SwapX Vault APY:** +15.00%
+💰 **Beefy wS-SwapX Vault APY:** +105.00%
 🏦 **MachFi S Borrow APY:** -4.00%
 ⚖️ **Effective Borrow Cost (using 50% LTV):** -2.00%
 
-🔄 **Net Strategy APY:** 13.00%
+🔄 **Net Strategy APY:** 103.00%
 
 ✅ **Strategy is profitable!** The yield farming returns currently exceed borrowing costs.
 
@@ -65,7 +65,12 @@ execute-delta-neutral 10
 ## 🎮 Interactive Modes
 
 - 💬 **Chat Mode**: Interactive conversation with the AI assistant for strategy planning and execution
-- 📱 **Telegram Mode**: Access all features via Telegram for on-the-go DeFi management
+- 📱 **Telegram Mode**: Access all features via Telegram with an enhanced user interface:
+  - 🔘 **Interactive Inline Keyboards**: Navigate strategies and options with buttons
+  - 📋 **Context-aware Menus**: Organized menus for different DeFi strategies 
+  - 🧠 **Smart Command Parsing**: Execute operations with commands like `/wrap 3` or `/executedeltaneutral 10`
+  - 📊 **Rich Visual Feedback**: Emojis and formatted responses for better readability
+  - 📲 **Mobile-Friendly**: Perfect for on-the-go DeFi management
 - 🎓 **Demo Mode**: Guided walkthrough of key features and strategies
 - 🤖 **Auto Mode**: Autonomous strategy execution and position management
 

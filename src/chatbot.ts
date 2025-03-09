@@ -127,9 +127,9 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
       usdceSwapXBeefyActionProvider(),
       new AaveSupplyActionProvider(),
       new BeefyPortfolioActionProvider(),
-      deltaNeutralActionProvider(),
       new MachFiActionProvider(),
-    ];
+      deltaNeutralActionProvider(),
+    ] as ActionProvider<WalletProvider>[];
 
     // Initialize LLM
     const llm = new ChatOpenAI({

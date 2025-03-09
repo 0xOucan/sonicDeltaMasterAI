@@ -417,20 +417,20 @@ export class MachFiActionProvider extends ActionProvider<EvmWalletProvider> {
         weightedSupplyAPY - (totalBorrowedUSD / totalSuppliedUSD) * weightedBorrowAPY : 
         0;
 
-      // Format dashboard output
-      let dashboard = `### 📊 MACHFI LENDING DASHBOARD\n\n`;
-      
-      dashboard += `#### 📈 OVERVIEW\n`;
-      dashboard += `- 💰 **Net Worth:** $${(totalSuppliedUSD - totalBorrowedUSD).toFixed(2)}\n`;
-      dashboard += `- 💵 **Net APY:** ${netAPY.toFixed(2)}%\n`;
-      dashboard += `- ❤️ **Health Factor:** ${shortfall > 0n ? "UNSAFE" : "SAFE"}\n\n`;
+      // Format dashboard output with enhanced emojis and formatting
+      let dashboard = `# 🏛️ MachFi Lending Dashboard 📊\n\n`;
 
-      dashboard += `#### 💎 SUPPLIED ASSETS\n`;
-      dashboard += `- 💰 **Total Balance:** $${totalSuppliedUSD.toFixed(2)} (APY: ${weightedSupplyAPY.toFixed(2)}%)\n`;
+      dashboard += `## 📝 Overview\n`;
+      dashboard += `- 💰 Net Worth: $${(totalSuppliedUSD - totalBorrowedUSD).toFixed(2)}\n`;
+      dashboard += `- 📈 Net APY: ${netAPY.toFixed(2)}%\n`;
+      dashboard += `- ❤️ Health Factor: ${shortfall > 0n ? "⚠️ UNSAFE" : "✅ SAFE"}\n\n`;
+
+      dashboard += `## 💎 Supplied Assets\n`;
+      dashboard += `- 💼 Total Balance: $${totalSuppliedUSD.toFixed(2)} (APY: ${weightedSupplyAPY.toFixed(2)}%)\n`;
 
       for (const [assetKey, data] of Object.entries(marketData)) {
         if (data.supplyUsdValue > 0) {
-          dashboard += `  - ${data.icon} **${data.symbol}:** ${Number(data.tokenFormatted).toFixed(6)} ($${data.supplyUsdValue.toFixed(2)}) - APY: ${data.supplyAPR.toFixed(2)}%\n`;
+          dashboard += `  - ${data.icon} **${data.symbol}:** ${Number(data.tokenFormatted).toFixed(6)} ($${data.supplyUsdValue.toFixed(2)}) - APY: +${data.supplyAPR.toFixed(2)}%\n`;
         }
       }
 
@@ -456,8 +456,8 @@ export class MachFiActionProvider extends ActionProvider<EvmWalletProvider> {
       const borrowAvailable = borrowLimit - totalBorrowedUSD;
       const riskLevel = borrowLimit > 0 ? (totalBorrowedUSD / borrowLimit) * 100 : 0;
 
-      dashboard += `\n#### 💪 BORROWING POWER\n`;
-      dashboard += `- 📊 **Available:** $${borrowAvailable.toFixed(2)}\n`;
+      dashboard += `\n## 💪 Borrowing Power\n`;
+      dashboard += `- ✅ Available: $${borrowAvailable.toFixed(2)}\n`;
       
       for (const [assetKey, data] of Object.entries(marketData)) {
         const availableInAsset = borrowAvailable / data.priceUSD;
@@ -465,13 +465,13 @@ export class MachFiActionProvider extends ActionProvider<EvmWalletProvider> {
       }
 
       // Add wallet balances
-      dashboard += `\n#### 💼 WALLET BALANCE\n`;
+      dashboard += `\n## 👝 Wallet Balance\n`;
       
       // Get native S balance
       const nativeBalance = await publicClient.getBalance({
         address: address as Hex
       });
-      dashboard += `- 🔷 **S:** ${formatUnits(nativeBalance, 18)}\n`;
+      dashboard += `- 🔷 S: ${formatUnits(nativeBalance, 18)}\n`;
 
       // Get other token balances
       for (const [assetKey, marketInfo] of Object.entries(ASSET_MARKETS)) {
@@ -499,10 +499,10 @@ export class MachFiActionProvider extends ActionProvider<EvmWalletProvider> {
   // Integrated from machfiDashboard.ts
   private formatDashboard(borrowedAssets: any[], totalDebt: number, weightedBorrowAPY: number) {
     return `
-#### 🏦 BORROWED ASSETS
-- 💸 **Total Debt:** -$${totalDebt.toFixed(2)} (APY: ${weightedBorrowAPY.toFixed(2)}%)
+## 🏦 Borrowed Assets
+- 📊 Total Debt: -$${totalDebt.toFixed(2)} (APY: ${weightedBorrowAPY.toFixed(2)}%)
   ${borrowedAssets.map(asset => 
-    `- ${asset.icon} **${asset.symbol}:** -${asset.amount} (-$${asset.valueUSD.toFixed(2)}) - APY: ${Math.abs(asset.apy).toFixed(2)}%`
+    `  - ${asset.icon} **${asset.symbol}:** -${asset.amount} (-$${asset.valueUSD.toFixed(2)}) - APY: ${Math.abs(asset.apy).toFixed(2)}%`
   ).join('\n')}
 `;
   }
@@ -844,5 +844,97 @@ export class MachFiActionProvider extends ActionProvider<EvmWalletProvider> {
 
   supportsNetwork(network: Network): boolean {
     return network.protocolFamily === "evm";
+  }
+
+  // Add a public method to get MachFi account data
+  async getMachfiAccountData(walletProvider: EvmWalletProvider): Promise<{
+    netWorth: number;
+    totalSupplied: number;
+    totalBorrowed: number;
+  }> {
+    try {
+      const address = await walletProvider.getAddress();
+      const publicClient = createPublicClient({
+        chain: sonic,
+        transport: http()
+      });
+
+      // Get market data for each asset
+      let totalSuppliedUSD = 0;
+      let totalBorrowedUSD = 0;
+
+      // Fetch data for each market
+      for (const [assetKey, marketInfo] of Object.entries(ASSET_MARKETS)) {
+        const cTokenAddress = marketInfo.cToken as Hex;
+        
+        try {
+          // Get exchange rate
+          const exchangeRate = await publicClient.readContract({
+            address: cTokenAddress,
+            abi: CTOKEN_ABI,
+            functionName: "exchangeRateStored",
+          }) as bigint;
+
+          // Get user's cToken balance
+          const cTokenBalance = await publicClient.readContract({
+            address: cTokenAddress,
+            abi: CTOKEN_ABI,
+            functionName: "balanceOf",
+            args: [address as Hex]
+          }) as bigint;
+
+          // Get borrow balance
+          const borrowBalance = await publicClient.readContract({
+            address: cTokenAddress,
+            abi: CTOKEN_ABI,
+            functionName: "borrowBalanceStored",
+            args: [address as Hex]
+          }) as bigint;
+
+          // Calculate actual token amounts
+          const tokenBalance = (cTokenBalance * exchangeRate) / BigInt(1e18);
+          const tokenFormatted = formatUnits(tokenBalance, marketInfo.decimals);
+          const borrowFormatted = formatUnits(borrowBalance, marketInfo.decimals);
+
+          // Get price from oracle
+          const price = await publicClient.readContract({
+            address: MACHFI_ADDRESSES.PRICE_ORACLE as Hex,
+            abi: PRICE_ORACLE_ABI,
+            functionName: "getUnderlyingPrice",
+            args: [cTokenAddress]
+          }) as bigint;
+
+          const priceUSD = Number(formatUnits(price, 36 - marketInfo.decimals));
+          const supplyUsdValue = Number(tokenFormatted) * priceUSD;
+          const borrowUsdValue = Number(borrowFormatted) * priceUSD;
+
+          // Update totals
+          if (supplyUsdValue > 0) {
+            totalSuppliedUSD += supplyUsdValue;
+          }
+
+          if (borrowUsdValue > 0) {
+            totalBorrowedUSD += borrowUsdValue;
+          }
+        } catch (error) {
+          console.error(`Error fetching ${assetKey} data:`, error);
+        }
+      }
+
+      const netWorth = totalSuppliedUSD - totalBorrowedUSD;
+
+      return {
+        netWorth,
+        totalSupplied: totalSuppliedUSD,
+        totalBorrowed: totalBorrowedUSD
+      };
+    } catch (error) {
+      console.error('Error getting MachFi account data:', error);
+      return {
+        netWorth: 0,
+        totalSupplied: 0,
+        totalBorrowed: 0
+      };
+    }
   }
 } 
