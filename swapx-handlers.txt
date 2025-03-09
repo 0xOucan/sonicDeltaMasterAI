@@ -1,0 +1,19 @@
+
+    // Handle SwapX S to USDC.e command
+    this.bot.onText(/\/swaps\s+(\d+\.?\d*)/, async (msg, match) => {
+      if (!this.isStarted || !match) return;
+      const chatId = msg.chat.id;
+      const amount = match[1];
+      
+      console.log(`Processing S to USDC.e swap: ${amount} S`);
+      this.processAction(chatId, `swapx-s-to-usdce ${amount}`);
+    });
+
+    // Handle SwapX USDC.e to S command
+    this.bot.onText(/\/swapusdc\s+(\d+\.?\d*)/, async (msg, match) => {
+      if (!this.isStarted || !match) return;
+      const chatId = msg.chat.id;
+      const amount = match[1];
+      
+      console.log(`Processing USDC.e to S swap: ${amount} USDC.e`);
+      this.processAction(chatId, `swapx-usdce-to-s ${amount}`);

@@ -28,6 +28,7 @@ import { AaveSupplyActionProvider } from "./action-providers/aave-supply";
 import { BeefyPortfolioActionProvider } from "./action-providers/beefy-portfolio";
 import { deltaNeutralActionProvider } from "./action-providers/delta-neutral";
 import { MachFiActionProvider } from "./action-providers/machfi/machfiActionProvider";
+import { SwapXActionProvider } from "./action-providers/swapx";
 
 dotenv.config();
 
@@ -129,6 +130,7 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
       new BeefyPortfolioActionProvider(),
       new MachFiActionProvider(),
       deltaNeutralActionProvider(),
+      new SwapXActionProvider(),
     ] as ActionProvider<WalletProvider>[];
 
     // Initialize LLM

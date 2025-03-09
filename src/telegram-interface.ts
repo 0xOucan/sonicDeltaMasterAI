@@ -20,6 +20,7 @@ export class TelegramInterface {
   private config: any;
   private options: TelegramInterfaceOptions;
   private isStarted: boolean = false;
+  private pendingAction: { type: string; data?: any } | null = null;
   
   // Store active message contexts for menu navigation
   private activeMenus: Map<number, { messageId: number, menuContext: string }> = new Map();
@@ -27,16 +28,16 @@ export class TelegramInterface {
   // Define menu structures
   private mainMenu: MenuOptions = {
     row1: [
-      { text: "💰 Wallet & Portfolio", callback_data: "action_balance" },
-      { text: "🐮 Beefy Portfolio", callback_data: "action_beefy" }
+      { text: "💰 DeFi Strategies", callback_data: "menu_defi_strategies" },
+      { text: "🔄 Token Operations", callback_data: "menu_token_operations" }
     ],
     row2: [
-      { text: "🔥 MachFi Dashboard", callback_data: "action_machfi" },
-      { text: "📐 Delta Neutral", callback_data: "action_delta_neutral" }
+      { text: "📈 Delta Neutral", callback_data: "menu_delta_strategy" },
+      { text: "💸 MachFi", callback_data: "menu_machfi" }
     ],
     row3: [
-      { text: "📊 DeFi Strategies", callback_data: "menu_defi_strategies" },
-      { text: "🔄 Token Operations", callback_data: "menu_token_operations" }
+      { text: "💱 SwapX", callback_data: "menu_swapx" },
+      { text: "❓ Help", callback_data: "command_help" }
     ]
   };
   
@@ -84,6 +85,16 @@ export class TelegramInterface {
       { text: "📤 Withdraw Collateral", callback_data: "command_withdraw" }
     ],
     row3: [
+      { text: "◀️ Back to Main Menu", callback_data: "menu_main" }
+    ]
+  };
+
+  private swapXMenu: MenuOptions = {
+    row1: [
+      { text: "💵 S to USDC.e", callback_data: "command_swap_s_to_usdce" },
+      { text: "🔷 USDC.e to S", callback_data: "command_swap_usdce_to_s" }
+    ],
+    row2: [
       { text: "◀️ Back to Main Menu", callback_data: "menu_main" }
     ]
   };
@@ -426,156 +437,188 @@ For detailed guidance on any specific strategy or feature, just ask me directly!
   }
   
   private async sendMainMenu(chatId: number) {
-    const message = await this.bot.sendMessage(
-      chatId,
-      "📋 *Main Menu*\n\nPlease select an option:",
-      {
-        parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: this.buildInlineKeyboard(this.mainMenu)
-        }
+    await this.bot.editMessageText("📋 *Main Menu*\n\nPlease select an option:", {
+      chat_id: chatId,
+      message_id: this.activeMenus.get(chatId)?.messageId,
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: this.buildInlineKeyboard(this.mainMenu)
       }
-    );
-    
-    // Store the active menu context
-    this.activeMenus.set(chatId, { messageId: message.message_id, menuContext: "main" });
+    });
+  }
+  
+  private async sendMenu(chatId: number, title: string, menuOptions: MenuOptions) {
+    await this.bot.editMessageText(`*${title}*\n\nPlease select an option:`, {
+      chat_id: chatId,
+      message_id: this.activeMenus.get(chatId)?.messageId,
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: this.buildInlineKeyboard(menuOptions)
+      }
+    });
   }
   
   private async handleCallbackQuery(chatId: number, messageId: number, callbackData: string) {
-    // Main menu actions
-    if (callbackData === "action_balance") {
-      this.processAction(chatId, "check balances");
-    } 
-    else if (callbackData === "action_beefy") {
-      this.processAction(chatId, "check portfolio");
-    }
-    else if (callbackData === "action_machfi") {
-      this.processAction(chatId, "machfi-dashboard");
-    }
-    else if (callbackData === "action_delta_neutral") {
-      // Show delta neutral menu
-      await this.bot.editMessageText("📐 *Delta Neutral Strategies*\n\nChoose an option:", {
-        chat_id: chatId,
-        message_id: messageId,
-        parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: this.buildInlineKeyboard(this.deltaStrategyMenu)
-        }
-      });
-      this.activeMenus.set(chatId, { messageId, menuContext: "delta_neutral" });
-    }
-    else if (callbackData === "action_delta_neutral_apy") {
-      this.processAction(chatId, "delta-neutral-apy");
-    }
-    else if (callbackData === "menu_defi_strategies") {
-      // Show DeFi strategies menu
-      await this.bot.editMessageText("📊 *DeFi Strategies*\n\nSelect a strategy:", {
-        chat_id: chatId,
-        message_id: messageId,
-        parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: this.buildInlineKeyboard(this.defiStrategiesMenu)
-        }
-      });
-      this.activeMenus.set(chatId, { messageId, menuContext: "defi_strategies" });
-    }
-    else if (callbackData === "menu_token_operations") {
-      // Show token operations menu
-      await this.bot.editMessageText("🔄 *Token Operations*\n\nSelect an operation:", {
-        chat_id: chatId,
-        message_id: messageId,
-        parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: this.buildInlineKeyboard(this.tokenOperationsMenu)
-        }
-      });
-      this.activeMenus.set(chatId, { messageId, menuContext: "token_operations" });
-    }
-    // Strategy actions
-    else if (callbackData === "action_ws_strategy_info") {
-      this.processAction(chatId, "ws-strategy info");
-    }
-    else if (callbackData === "action_usdc_strategy_info") {
-      this.processAction(chatId, "usdc-strategy info");
-    }
-    // Token operation commands
-    else if (callbackData === "command_wrap") {
+    try {
+      // Update active menu entry
+      this.activeMenus.set(chatId, { messageId, menuContext: callbackData });
+
+      if (callbackData === "menu_main") {
+        await this.sendMainMenu(chatId);
+        return;
+      } else if (callbackData === "menu_defi_strategies") {
+        await this.sendMenu(chatId, "DeFi Strategies", this.defiStrategiesMenu);
+        return;
+      } else if (callbackData === "menu_token_operations") {
+        await this.sendMenu(chatId, "Token Operations", this.tokenOperationsMenu);
+        return;
+      } else if (callbackData === "menu_delta_strategy") {
+        await this.sendMenu(chatId, "Delta Neutral Strategy", this.deltaStrategyMenu);
+        return;
+      } else if (callbackData === "menu_machfi") {
+        await this.sendMenu(chatId, "MachFi", this.machfiMenu);
+        return;
+      } else if (callbackData === "menu_swapx") {
+        await this.sendMenu(chatId, "SwapX DEX", this.swapXMenu);
+        return;
+      }
+
+      // Main menu actions
+      if (callbackData === "action_balance") {
+        this.processAction(chatId, "check balances");
+      } 
+      else if (callbackData === "action_beefy") {
+        this.processAction(chatId, "check portfolio");
+      }
+      else if (callbackData === "action_machfi") {
+        this.processAction(chatId, "machfi-dashboard");
+      }
+      else if (callbackData === "action_delta_neutral") {
+        // Show delta neutral menu
+        await this.bot.editMessageText("📐 *Delta Neutral Strategies*\n\nChoose an option:", {
+          chat_id: chatId,
+          message_id: messageId,
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: this.buildInlineKeyboard(this.deltaStrategyMenu)
+          }
+        });
+        this.activeMenus.set(chatId, { messageId, menuContext: "delta_neutral" });
+      }
+      else if (callbackData === "action_delta_neutral_apy") {
+        this.processAction(chatId, "delta-neutral-apy");
+      }
+      else if (callbackData === "menu_defi_strategies") {
+        // Show DeFi strategies menu
+        await this.bot.editMessageText("📊 *DeFi Strategies*\n\nSelect a strategy:", {
+          chat_id: chatId,
+          message_id: messageId,
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: this.buildInlineKeyboard(this.defiStrategiesMenu)
+          }
+        });
+        this.activeMenus.set(chatId, { messageId, menuContext: "defi_strategies" });
+      }
+      else if (callbackData === "menu_token_operations") {
+        // Show token operations menu
+        await this.bot.editMessageText("🔄 *Token Operations*\n\nSelect an operation:", {
+          chat_id: chatId,
+          message_id: messageId,
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: this.buildInlineKeyboard(this.tokenOperationsMenu)
+          }
+        });
+        this.activeMenus.set(chatId, { messageId, menuContext: "token_operations" });
+      }
+      // Strategy actions
+      else if (callbackData === "action_ws_strategy_info") {
+        this.processAction(chatId, "ws-strategy info");
+      }
+      else if (callbackData === "action_usdc_strategy_info") {
+        this.processAction(chatId, "usdc-strategy info");
+      }
+      // Token operation commands
+      else if (callbackData === "command_wrap") {
+        await this.bot.sendMessage(
+          chatId,
+          "🔄 *Wrap S tokens*\n\nUse the command format:\n`/wrap <amount>`\n\nExample: `/wrap 3`",
+          { parse_mode: "Markdown" }
+        );
+      }
+      else if (callbackData === "command_unwrap") {
+        await this.bot.sendMessage(
+          chatId,
+          "🔄 *Unwrap wS tokens*\n\nUse the command format:\n`/unwrap <amount>`\n\nExample: `/unwrap 4`",
+          { parse_mode: "Markdown" }
+        );
+      }
+      else if (callbackData === "command_transfer") {
+        await this.bot.sendMessage(
+          chatId,
+          "📤 *Transfer wS tokens*\n\nPlease provide the details in the format:\n`transfer <amount> wS to <address>`",
+          { parse_mode: "Markdown" }
+        );
+      }
+      else if (callbackData === "command_approve") {
+        await this.bot.sendMessage(
+          chatId,
+          "✅ *Approve wS tokens*\n\nPlease provide the details in the format:\n`approve <amount> wS for <address>`",
+          { parse_mode: "Markdown" }
+        );
+      }
+      // MachFi actions
+      else if (callbackData === "command_supply_collateral") {
+        await this.bot.sendMessage(
+          chatId,
+          "💰 *Supply Collateral to MachFi*\n\nUse the command format:\n`/supplycollateral <amount> <asset>`\n\nSupported assets: S, USDC.e, WETH\n\nExample: `/supplycollateral 100 USDC.e`",
+          { parse_mode: "Markdown" }
+        );
+      }
+      else if (callbackData === "command_borrow") {
+        await this.bot.sendMessage(
+          chatId,
+          "🏦 *Borrow Assets from MachFi*\n\nUse the command format:\n`/borrow <amount> <asset>`\n\nExample: `/borrow 10 S`",
+          { parse_mode: "Markdown" }
+        );
+      }
+      else if (callbackData === "command_repay") {
+        await this.bot.sendMessage(
+          chatId,
+          "💸 *Repay Debt to MachFi*\n\nUse the command format:\n`/repay <amount> <asset>` or `/repay full <asset>` or `/repay all`\n\nExample: `/repay 5 S` or `/repay full S` or `/repay all`",
+          { parse_mode: "Markdown" }
+        );
+      }
+      else if (callbackData === "command_withdraw") {
+        await this.bot.sendMessage(
+          chatId,
+          "📤 *Withdraw Collateral from MachFi*\n\nPlease provide the details in the format:\n`withdraw <amount> <asset> from machfi`",
+          { parse_mode: "Markdown" }
+        );
+      }
+      else if (callbackData === "command_execute_delta") {
+        // Show dialog to input amount for delta neutral strategy
+        await this.bot.sendMessage(
+          chatId,
+          "🚀 *Execute Delta Neutral Strategy*\n\nPlease enter the amount of USDC.e you want to use with the command:\n\n`/executemachfidelta <amount>`\n\nExample: `/executemachfidelta 100`\n\nNote: We recommend using MachFi strategy as Aave has reached its supply cap.",
+          { parse_mode: "Markdown" }
+        );
+      }
+      // Handle SwapX commands
+      else if (callbackData === "command_swap_s_to_usdce") {
+        await this.bot.sendMessage(chatId, "How much S would you like to swap to USDC.e? (e.g., 2.0)");
+        this.pendingAction = { type: "swap_s_to_usdce" };
+      } else if (callbackData === "command_swap_usdce_to_s") {
+        await this.bot.sendMessage(chatId, "How much USDC.e would you like to swap to S? (e.g., 1.0)");
+        this.pendingAction = { type: "swap_usdce_to_s" };
+      }
+    } catch (error) {
+      console.error("Error processing callback query:", error);
       await this.bot.sendMessage(
         chatId,
-        "🔄 *Wrap S tokens*\n\nUse the command format:\n`/wrap <amount>`\n\nExample: `/wrap 3`",
-        { parse_mode: "Markdown" }
+        "I encountered an error processing your request. Please try again."
       );
-    }
-    else if (callbackData === "command_unwrap") {
-      await this.bot.sendMessage(
-        chatId,
-        "🔄 *Unwrap wS tokens*\n\nUse the command format:\n`/unwrap <amount>`\n\nExample: `/unwrap 4`",
-        { parse_mode: "Markdown" }
-      );
-    }
-    else if (callbackData === "command_transfer") {
-      await this.bot.sendMessage(
-        chatId,
-        "📤 *Transfer wS tokens*\n\nPlease provide the details in the format:\n`transfer <amount> wS to <address>`",
-        { parse_mode: "Markdown" }
-      );
-    }
-    else if (callbackData === "command_approve") {
-      await this.bot.sendMessage(
-        chatId,
-        "✅ *Approve wS tokens*\n\nPlease provide the details in the format:\n`approve <amount> wS for <address>`",
-        { parse_mode: "Markdown" }
-      );
-    }
-    // MachFi actions
-    else if (callbackData === "command_supply_collateral") {
-      await this.bot.sendMessage(
-        chatId,
-        "💰 *Supply Collateral to MachFi*\n\nUse the command format:\n`/supplycollateral <amount> <asset>`\n\nSupported assets: S, USDC.e, WETH\n\nExample: `/supplycollateral 100 USDC.e`",
-        { parse_mode: "Markdown" }
-      );
-    }
-    else if (callbackData === "command_borrow") {
-      await this.bot.sendMessage(
-        chatId,
-        "🏦 *Borrow Assets from MachFi*\n\nUse the command format:\n`/borrow <amount> <asset>`\n\nExample: `/borrow 10 S`",
-        { parse_mode: "Markdown" }
-      );
-    }
-    else if (callbackData === "command_repay") {
-      await this.bot.sendMessage(
-        chatId,
-        "💸 *Repay Debt to MachFi*\n\nUse the command format:\n`/repay <amount> <asset>` or `/repay full <asset>` or `/repay all`\n\nExample: `/repay 5 S` or `/repay full S` or `/repay all`",
-        { parse_mode: "Markdown" }
-      );
-    }
-    else if (callbackData === "command_withdraw") {
-      await this.bot.sendMessage(
-        chatId,
-        "📤 *Withdraw Collateral from MachFi*\n\nPlease provide the details in the format:\n`withdraw <amount> <asset> from machfi`",
-        { parse_mode: "Markdown" }
-      );
-    }
-    else if (callbackData === "command_execute_delta") {
-      // Show dialog to input amount for delta neutral strategy
-      await this.bot.sendMessage(
-        chatId,
-        "🚀 *Execute Delta Neutral Strategy*\n\nPlease enter the amount of USDC.e you want to use with the command:\n\n`/executemachfidelta <amount>`\n\nExample: `/executemachfidelta 100`\n\nNote: We recommend using MachFi strategy as Aave has reached its supply cap.",
-        { parse_mode: "Markdown" }
-      );
-    }
-    // Navigation actions
-    else if (callbackData === "menu_main") {
-      // Return to main menu
-      await this.bot.editMessageText("📋 *Main Menu*\n\nPlease select an option:", {
-        chat_id: chatId,
-        message_id: messageId,
-        parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: this.buildInlineKeyboard(this.mainMenu)
-        }
-      });
-      this.activeMenus.set(chatId, { messageId, menuContext: "main" });
     }
   }
   
@@ -611,6 +654,23 @@ For detailed guidance on any specific strategy or feature, just ask me directly!
     
     try {
       this.bot.sendChatAction(chatId, 'typing');
+      
+      // Handle pending actions
+      if (this.pendingAction) {
+        if (this.pendingAction.type === "swap_s_to_usdce") {
+          // Handle S to USDC.e swap with input amount
+          const amount = msg.text.trim();
+          await this.processAction(chatId, `swapx-s-to-usdce ${amount}`);
+          this.pendingAction = null;
+          return;
+        } else if (this.pendingAction.type === "swap_usdce_to_s") {
+          // Handle USDC.e to S swap with input amount
+          const amount = msg.text.trim();
+          await this.processAction(chatId, `swapx-usdce-to-s ${amount}`);
+          this.pendingAction = null;
+          return;
+        }
+      }
       
       // Use invoke instead of stream
       const response = await this.agent.invoke(msg.text, this.config);

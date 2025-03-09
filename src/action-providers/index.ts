@@ -9,6 +9,7 @@ import { SWrapperActionProvider } from './swrapper/sWrapperActionProvider';
 import { BalanceCheckerActionProvider } from './balance-checker/balanceCheckerActionProvider';
 import { AaveSupplyActionProvider } from './aave-supply/aaveSupplyActionProvider';
 import { MachFiActionProvider } from './machfi/machfiActionProvider';
+import { SwapXActionProvider } from './swapx/swapxActionProvider';
 
 // Re-export factory functions where available
 export { wsSwapXBeefyActionProvider } from './wsswapx-beefy/wsSwapXBeefyActionProvider';
@@ -25,6 +26,7 @@ export { SWrapperActionProvider };
 export { BalanceCheckerActionProvider };
 export { AaveSupplyActionProvider };
 export { MachFiActionProvider };
+export { SwapXActionProvider };
 
 // Export types selectively
 export type { ActionProvider } from '@coinbase/agentkit';

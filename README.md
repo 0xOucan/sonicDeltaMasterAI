@@ -57,13 +57,43 @@ Execute the delta neutral strategy with a specific USDC.e amount:
 execute-delta-neutral 10
 ```
 
+## 🔄 SwapX DEX Integration
+
+Our newest feature allows seamless token swapping through the SwapX decentralized exchange:
+
+### 💱 SwapX Commands
+
+Swap native S to USDC.e stablecoin:
+```
+swapx-s-to-usdce 2.0
+```
+
+Swap USDC.e to native S:
+```
+swapx-usdce-to-s 1.0
+```
+
+Use the general swap command for flexibility:
+```
+swapx-swap tokenIn=S tokenOut=USDC_E amount=2.0
+```
+
+### 🔍 SwapX Features
+
+- 🔁 **Native S to USDC.e Conversion**: Automatically handles S to wS wrapping before swapping
+- 💯 **Smart Slippage Protection**: Default 0.1% slippage protection (customizable)
+- 🛡️ **Balance Verification**: Checks token balances before proceeding with swaps
+- ✅ **Token Approvals**: Handles necessary token approvals automatically
+- 🔎 **Transaction Tracking**: Provides links to all executed transactions
+- 💸 **Best Rates**: Uses SwapX for optimal exchange rates on Sonic network
+
 ## 🎮 Interactive Modes
 
 - 💬 **Chat Mode**: Interactive conversation with the AI assistant for strategy planning and execution
 - 📱 **Telegram Mode**: Access all features via Telegram with an enhanced user interface:
   - 🔘 **Interactive Inline Keyboards**: Navigate strategies and options with buttons
-  - 📋 **Context-aware Menus**: Organized menus for different DeFi strategies 
-  - 🧠 **Smart Command Parsing**: Execute operations with commands like `/wrap 3` or `/executedeltaneutral 10`
+  - 📋 **Context-aware Menus**: Organized menus for different DeFi strategies, token operations, and SwapX DEX
+  - 🧠 **Smart Command Parsing**: Execute operations with commands like `/wrap 3`, `/executedeltaneutral 10`, or swap tokens by responding to prompts
   - 📊 **Rich Visual Feedback**: Emojis and formatted responses for better readability
   - 📲 **Mobile-Friendly**: Perfect for on-the-go DeFi management
 - 🎓 **Demo Mode**: Guided walkthrough of key features and strategies
@@ -152,6 +182,11 @@ execute-delta-neutral 10
   * 📦 Wrap S tokens to wS for DeFi compatibility
   * 📭 Unwrap wS back to S tokens
   * 💰 Check S/wS balances
+- 💱 **Token Swapping with SwapX**
+  * 💵 Swap S to USDC.e for stablecoin exposure
+  * 🔷 Swap USDC.e to S for native token exposure
+  * 🔁 Automatic token wrapping and approval handling
+  * 💯 Default slippage protection with customization options
 - 💎 **Token Management**
   * 💸 Transfer tokens
   * ✅ Approve token spending
