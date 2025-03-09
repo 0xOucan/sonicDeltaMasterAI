@@ -39,22 +39,17 @@ delta-neutral-apy
 
 Example Output:
 ```
-## 📊 MachFi-Beefy Delta Neutral Strategy - APY Breakdown
+# 📐 Delta Neutral Strategy APY Comparison 📊
 
-💰 **Beefy wS-SwapX Vault APY:** +105.00%
-🏦 **MachFi S Borrow APY:** -4.00%
-⚖️ **Effective Borrow Cost (using 50% LTV):** -2.00%
+## 🏛️ MachFi-Beefy Strategy
+- 🐮 Beefy wS-SwapX Vault APY: +143.94% 🚀
+- 🏦 MachFi S Borrow APY: -3.27% 💸
+- 💵 MachFi USDC.e Supply APY: +3.42% 📈
+- ⚖️ Effective Borrowing Cost (50% LTV): -1.63% 📉
+- 📈 Effective Supply Yield (50% remaining): +1.71% 💹
 
-🔄 **Net Strategy APY:** 103.00%
-
-✅ **Strategy is profitable!** The yield farming returns currently exceed borrowing costs.
-
-### 🔍 How It Works
-1. 💰 Your USDC.e is supplied to MachFi as collateral
-2. 🏦 50% of your borrowing power is used to borrow S tokens
-3. 🔄 S tokens are wrapped to wS
-4. 🌾 wS is deployed in Beefy's wS-SwapX vault
-5. 💸 You earn the spread between borrowing costs and farming returns
+🔄 Net Strategy APY: 144.01% 🔥  
+✅ Strategy is profitable! The yield farming returns exceed borrowing costs.
 ```
 
 Execute the delta neutral strategy with a specific USDC.e amount:
@@ -76,12 +71,12 @@ execute-delta-neutral 10
 
 ## 📈 Additional DeFi Strategies
 
-### 🌊 wS-SwapX-Beefy Strategy (APY ~500%)
+### 🌊 wS-SwapX-Beefy Strategy (Live APY fetched from Beefy API)
 * ✅ Pre-checks token balances for strategy eligibility
 * 💎 Deposit wS into SwapX vault
 * 🎫 Receive LP tokens
 * 🚜 Stake LP tokens in Beefy vault
-* 💰 Earn high APY rewards (~500%)
+* 💰 Earn high APY rewards (dynamically fetched from Beefy API)
 * 🔄 Withdrawal functionality
 * 🔍 Detailed transaction links to SonicScan
 
@@ -90,22 +85,25 @@ execute-delta-neutral 10
 * 💰 Handles USDC.e deposits and withdrawals
 * 🔗 Integrated with SwapX and Beefy vaults
 * 📊 Full transaction tracking
+* 💹 Accurate APY data (using vault ID: swapx-ichi-ws-usdc.e-usdc.e)
 
 ## 📊 Comprehensive Portfolio Management
 
 ### 🔍 Advanced Balance Checker
 * 💰 View native S balance
 * 🪙 Check wS, USDC.e and other token balances
-* 📈 Track Aave supplied assets
+* 📈 Track Aave and MachFi positions with direct blockchain data access
 * 🏦 Monitor Beefy vault positions
 * ✅ Balance verification before transactions
 * 💹 View total portfolio value across all assets
+* 🔄 Dual approach for position data: direct contract calls with regex fallback
 
 ### 🐮 Beefy Portfolio Tracker
 * 📊 View all Beefy vault positions
 * 📈 Track vault performance
 * 💰 Monitor rewards and yields
 * 💱 Real-time USD value calculations
+* 🔄 Robust API integration with multiple fallback mechanisms
 
 ## 🏦 Lending Protocol Integrations
 
@@ -122,6 +120,11 @@ execute-delta-neutral 10
   * 🏷️ Borrow against collateral
   * 💸 Repay borrowed positions
   * 📊 View maximum borrowable amounts
+  
+- 🔢 **Direct Data Access**:
+  * 💡 New getAaveAccountData method for direct blockchain data fetching
+  * 📊 Accurate net worth calculation bypassing text parsing
+  * 🔄 Improved reliability with multiple data sources
 
 ### 🆕 MachFi Protocol Integration
 
@@ -137,6 +140,11 @@ execute-delta-neutral 10
   * 🏷️ Borrow assets against your collateral
   * 💸 Repay borrowed positions
   * 📤 Withdraw supplied assets
+  
+- 🔢 **Direct Data Access**:
+  * 💡 New getMachfiAccountData method for direct blockchain data fetching
+  * 📊 Accurate market-by-market value calculation
+  * 🔄 Improved reliability with direct oracle price integration
 
 ## 🪙 Token Operations
 
@@ -189,8 +197,6 @@ To set up the project, follow these steps:
    npm start
    ```
 
-   ```
-
 3. 🎮 Choose your preferred interaction mode:
    - 💬 Chat mode for direct conversation
    - 📱 Telegram mode for mobile access
@@ -204,6 +210,25 @@ To set up the project, follow these steps:
 - 🛡️ Safe approval limits
 - 📝 Transaction verification and monitoring
 - ❤️ Health factor monitoring for lending positions
+
+## 🌟 Recent Improvements
+
+### 💅 Enhanced UI & UX
+- 📱 **Emoji-Rich Responses**: Added contextual emojis throughout all outputs for better visual appeal
+- 📊 **Improved Formatting**: Enhanced Markdown formatting with consistent section hierarchy
+- 💬 **Clearer Instructions**: More intuitive command instructions and feedback
+
+### 🔍 Beefy API Integration
+- 🎯 **Exact Vault IDs**: Using precise vault IDs for accurate APY data:
+  * wS-SwapX: swapx-ichi-ws-usdc.e
+  * USDC.e-SwapX: swapx-ichi-ws-usdc.e-usdc.e
+- 🛠️ **Robust Data Fetching**: Multiple fallback mechanisms for reliable APY data
+- 🧩 **Enhanced Debugging**: Comprehensive logging of API responses and parsing steps
+
+### 💰 Portfolio Value Calculation
+- 🔢 **Direct Blockchain Access**: Direct methods to fetch Aave and MachFi positions
+- 🔄 **Dual Approach**: Primary blockchain data with regex fallback
+- 📊 **Accurate Total Value**: Reliable portfolio value calculations for Telegram /balance command
 
 ## 🚧 Current Development Status
 
