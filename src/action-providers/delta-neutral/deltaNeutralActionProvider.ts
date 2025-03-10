@@ -47,7 +47,8 @@ import {
   SWAPX_VAULT_ADDRESS,
   BEEFY_VAULT_ADDRESS,
   SWAPX_VAULT_ABI,
-  BEEFY_VAULT_ABI
+  BEEFY_VAULT_ABI,
+  WS_TOKEN_ADDRESS
 } from "../wsswapx-beefy/constants";
 
 import {
@@ -281,7 +282,13 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
           return `❌ Failed to supply USDC.e to MachFi: ${supplyResult}`;
         }
         
-        response += "✅ Successfully supplied USDC.e to MachFi\n\n";
+        // Extract transaction hash from supply result
+        const supplyTxMatch = supplyResult.match(/Transaction: (https:\/\/sonicscan\.org\/tx\/[a-zA-Z0-9]+)/);
+        if (supplyTxMatch && supplyTxMatch[1]) {
+          response += `✅ Successfully supplied USDC.e to MachFi\n🔗 Transaction: ${supplyTxMatch[1]}\n\n`;
+        } else {
+          response += "✅ Successfully supplied USDC.e to MachFi\n\n";
+        }
       } catch (error) {
         console.error("Error supplying USDC.e to MachFi:", error);
         return `❌ Failed to supply USDC.e to MachFi: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -303,7 +310,13 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
           return `❌ Failed to borrow S from MachFi: ${borrowResult}`;
         }
         
-        response += "✅ Successfully borrowed S tokens\n\n";
+        // Extract transaction hash from borrow result
+        const borrowTxMatch = borrowResult.match(/Transaction: (https:\/\/sonicscan\.org\/tx\/[a-zA-Z0-9]+)/);
+        if (borrowTxMatch && borrowTxMatch[1]) {
+          response += `✅ Successfully borrowed S tokens\n🔗 Transaction: ${borrowTxMatch[1]}\n\n`;
+        } else {
+          response += "✅ Successfully borrowed S tokens\n\n";
+        }
       } catch (error) {
         console.error("Error borrowing S from MachFi:", error);
         return `❌ Failed to borrow S from MachFi: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -316,12 +329,10 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
         console.log(`Wrapping ${borrowAmount} S tokens to wS using SWrapperActionProvider directly`);
         
         // First ensure that we have enough S tokens to wrap
-        const sBalance = await publicClient.readContract({
-          address: TOKENS.S.address as Hex,
-          abi: S_TOKEN_ABI,
-          functionName: "balanceOf",
-          args: [address as Hex]
-        }) as bigint;
+        // Use getBalance instead of readContract since S is the native token
+        const sBalance = await publicClient.getBalance({
+          address: address as Hex
+        });
         
         console.log(`Current S balance: ${formatUnits(sBalance, 18)} S`);
         const amountToWrap = parseUnits(borrowAmount, 18);
@@ -339,7 +350,13 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
           return `❌ Failed to wrap S tokens: ${wrapResult}`;
         }
         
-        response += "✅ Successfully wrapped S to wS\n\n";
+        // Extract transaction hash from wrapResult for inclusion in the final response
+        const wrapTxMatch = wrapResult.match(/Transaction: (https:\/\/sonicscan\.org\/tx\/[a-zA-Z0-9]+)/);
+        if (wrapTxMatch && wrapTxMatch[1]) {
+          response += `✅ Successfully wrapped S to wS\n🔗 Transaction: ${wrapTxMatch[1]}\n\n`;
+        } else {
+          response += "✅ Successfully wrapped S to wS\n\n";
+        }
       } catch (error) {
         console.error("Error wrapping S to wS:", error);
         
@@ -362,12 +379,15 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       // Step 5: Deposit wS into SwapX-Beefy strategy
       response += "4️⃣ Depositing wS into SwapX-Beefy strategy...\n";
       
+      let depositResult = ""; // Initialize depositResult variable
+      
       try {
         console.log(`Attempting to deposit ${borrowAmount} wS into SwapX-Beefy strategy`);
         
         // Check if we have enough wS tokens after wrapping
+        // Use the WS_TOKEN_ADDRESS from wsswapx-beefy constants for consistency
         const wsBalance = await publicClient.readContract({
-          address: TOKENS.WS.address as Hex,
+          address: WS_TOKEN_ADDRESS as Hex,
           abi: ERC20_ABI,
           functionName: "balanceOf",
           args: [address as Hex]
@@ -381,7 +401,7 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
         }
         
         // Now execute the strategy with the wS
-        const depositResult = await this.wsSwapXBeefyProvider.executeFullStrategy(walletProvider, {
+        depositResult = await this.wsSwapXBeefyProvider.executeFullStrategy(walletProvider, {
           amount: borrowAmount
         });
         
@@ -416,6 +436,64 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       response += `- 💰 Supplied: ${formattedAmount} USDC.e to MachFi\n`;
       response += `- 🏦 Borrowed: ${borrowAmount} S tokens (50% LTV)\n`;
       response += `- 🔄 Wrapped and deposited: ${borrowAmount} wS into SwapX-Beefy\n\n`;
+      
+      // Add transaction links section
+      response += "### 🔗 Transaction Links:\n";
+      
+      // Extract transaction hashes from the depositResult
+      const transactions: string[] = [];
+      
+      // Look for the supply transaction in response
+      const supplyMatch = response.match(/Successfully supplied USDC\.e to MachFi.*?Transaction: (https:\/\/sonicscan\.org\/tx\/[a-zA-Z0-9]+)/s);
+      if (supplyMatch && supplyMatch[1]) {
+        transactions.push(`- 💰 **Supply USDC.e**: [View Transaction](${supplyMatch[1]})`);
+      }
+      
+      // Look for the borrow transaction in response
+      const borrowMatch = response.match(/Successfully borrowed S tokens.*?Transaction: (https:\/\/sonicscan\.org\/tx\/[a-zA-Z0-9]+)/s);
+      if (borrowMatch && borrowMatch[1]) {
+        transactions.push(`- 🏦 **Borrow S tokens**: [View Transaction](${borrowMatch[1]})`);
+      }
+      
+      // Look for the wrap transaction in response
+      const wrapMatch = response.match(/Successfully wrapped S to wS.*?Transaction: (https:\/\/sonicscan\.org\/tx\/[a-zA-Z0-9]+)/s);
+      if (wrapMatch && wrapMatch[1]) {
+        transactions.push(`- 🔄 **Wrap S to wS**: [View Transaction](${wrapMatch[1]})`);
+      }
+      
+      // Extract from depositResult (if available)
+      if (depositResult) {
+        // Look for approval transaction
+        const approvalMatches = depositResult.match(/Approved wS for SwapX vault\s+🔗 Transaction: (https:\/\/sonicscan\.org\/tx\/[a-zA-Z0-9]+)/);
+        if (approvalMatches && approvalMatches[1]) {
+          transactions.push(`- ✅ **Approve wS**: [View Transaction](${approvalMatches[1]})`);
+        }
+        
+        // Look for deposit transaction
+        const depositMatches = depositResult.match(/Deposited wS into SwapX vault\s+🔗 Transaction: (https:\/\/sonicscan\.org\/tx\/[a-zA-Z0-9]+)/);
+        if (depositMatches && depositMatches[1]) {
+          transactions.push(`- 📥 **Deposit to SwapX**: [View Transaction](${depositMatches[1]})`);
+        }
+        
+        // Look for Beefy approval transaction
+        const beefyApprovalMatches = depositResult.match(/Approved SwapX LP tokens for Beefy vault\s+🔗 Transaction: (https:\/\/sonicscan\.org\/tx\/[a-zA-Z0-9]+)/);
+        if (beefyApprovalMatches && beefyApprovalMatches[1]) {
+          transactions.push(`- ✅ **Approve LP tokens**: [View Transaction](${beefyApprovalMatches[1]})`);
+        }
+        
+        // Look for Beefy deposit transaction
+        const beefyDepositMatches = depositResult.match(/Deposited SwapX LP tokens into Beefy vault\s+🔗 Transaction: (https:\/\/sonicscan\.org\/tx\/[a-zA-Z0-9]+)/);
+        if (beefyDepositMatches && beefyDepositMatches[1]) {
+          transactions.push(`- 🌾 **Deposit to Beefy**: [View Transaction](${beefyDepositMatches[1]})`);
+        }
+      }
+      
+      // Add transactions to response if any were found
+      if (transactions.length > 0) {
+        response += transactions.join('\n') + '\n\n';
+      } else {
+        response += "- No transaction links available\n\n";
+      }
       
       // Get updated dashboard
       response += "### 📊 Updated MachFi Position:\n";
@@ -658,9 +736,13 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
     try {
       console.log(`Private wrapSTokens helper called with amount: ${amount}`);
       
-      // Use the class instance's sWrapperProvider
+      // Convert the decimal amount to wei (18 decimals for S token)
+      const amountInWei = parseUnits(amount, 18).toString();
+      console.log(`Amount converted to wei: ${amountInWei}`);
+      
+      // Use the class instance's sWrapperProvider with the wei amount
       const result = await this.sWrapperProvider.wrapS(walletProvider, {
-        amount
+        amount: amountInWei
       });
       
       console.log(`Wrap result: ${result}`);

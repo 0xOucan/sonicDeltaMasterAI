@@ -5,7 +5,7 @@ import {
   CreateAction,
   EvmWalletProvider,
 } from "@coinbase/agentkit";
-import { encodeFunctionData, createPublicClient, http, isAddress } from "viem";
+import { encodeFunctionData, createPublicClient, http, isAddress, formatUnits } from "viem";
 import type { Hex } from "viem";
 import { sonic } from 'viem/chains';
 import "reflect-metadata";
@@ -114,7 +114,11 @@ Example: To wrap 0.1 S, use amount: "100000000000000000"
       });
 
       await walletProvider.waitForTransactionReceipt(tx);
-      return `✅ Successfully wrapped ${args.amount} S to wS tokens\n🔗 Transaction: ${this.getSonicScanLink(tx)}`;
+      // Format the amount to be human readable (divide by 10^18) if it's a large number
+      const displayAmount = args.amount.length > 10 
+        ? formatUnits(BigInt(args.amount), 18)
+        : args.amount;
+      return `✅ Successfully wrapped ${displayAmount} S to wS tokens\n🔗 Transaction: ${this.getSonicScanLink(tx)}`;
     } catch (error) {
       if (error instanceof SWrapperError) {
         return `Error: ${error.message}`;

@@ -2,7 +2,7 @@
 export const SOME_CONSTANT = "value"; // Add any constants needed by deltaNeutralActionProvider
 
 // Global constants for all action providers
-export const WRAP_S_ADDRESS = "0xd9b626fda1f1df7f385e6f3b5a12d3d568fba93a";
+export const WRAP_S_ADDRESS = "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38";
 export const S_TOKEN_ABI = [
   {
     "inputs": [],
@@ -18,6 +18,13 @@ export const S_TOKEN_ABI = [
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "account", "type": "address"}],
+    "name": "balanceOf",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
     "type": "function"
   }
 ];
@@ -51,7 +58,7 @@ export const AAVE_POOL_ABI = [
 // Token information
 export const TOKENS = {
   S: { address: "0x0000000000000000000000000000000000000000", price: 0.5, decimals: 18, symbol: "S" },
-  WS: { address: "0xd9b626fda1f1df7f385e6f3b5a12d3d568fba93a", price: 0.5, decimals: 18, symbol: "wS" },
+  WS: { address: "0x039e2fb66102314ce7b64ce5ce3e5183bc94ad38", price: 0.5, decimals: 18, symbol: "wS" },
   USDC_E: { address: "0x29219dd400f2Bf60E5a23d13Be72B486D4038894", price: 1.0, decimals: 6, symbol: "USDC.e" },
   WETH: { address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", price: 2800.0, decimals: 18, symbol: "WETH" }
 };
