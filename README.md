@@ -2,6 +2,11 @@
 
 An intelligent 🤖 blockchain AI agent for Sonic Network, specializing in **Delta Neutral DeFi strategies** with comprehensive portfolio management and advanced yield optimization capabilities.
 
+Demo video: 
+
+<iframe src="https://drive.google.com/file/d/1LHOlUyAKgEtyrvpjLnS6XOSfN9obpEjp/preview" width="640" height="360"></iframe>
+
+
 ## 🔥 Core Features: Delta Neutral Strategies
 
 ### 🆕 MachFi Delta Neutral Strategy
