@@ -89,15 +89,15 @@ swapx-swap tokenIn=S tokenOut=USDC_E amount=2.0
 
 ## 🎮 Interactive Modes
 
-- 💬 **Chat Mode**: Interactive conversation with the AI assistant for strategy planning and execution
-- 📱 **Telegram Mode**: Access all features via Telegram with an enhanced user interface:
+- 💬 **Chat Mode**: Interactive conversation with the AI assistant for strategy planning and execution through terminal interface (`runChatMode` in chatbot.ts)
+- 📱 **Telegram Mode**: Access all features via Telegram with an enhanced user interface (`runTelegramMode` in chatbot.ts):
   - 🔘 **Interactive Inline Keyboards**: Navigate strategies and options with buttons
   - 📋 **Context-aware Menus**: Organized menus for different DeFi strategies, token operations, and SwapX DEX
   - 🧠 **Smart Command Parsing**: Execute operations with commands like `/wrap 3`, `/executedeltaneutral 10`, or swap tokens by responding to prompts
   - 📊 **Rich Visual Feedback**: Emojis and formatted responses for better readability
   - 📲 **Mobile-Friendly**: Perfect for on-the-go DeFi management
-- 🎓 **Demo Mode**: Guided walkthrough of key features and strategies
-- 🤖 **Auto Mode**: Autonomous strategy execution and position management
+- 🎓 **Demo Mode**: Guided walkthrough of key features and strategies (`demoMode` in chatbot.ts)
+- 🤖 **Auto Mode**: Autonomous strategy execution and position management (`runAutonomousMode` in chatbot.ts)
 
 ## 📈 Additional DeFi Strategies
 
@@ -106,7 +106,7 @@ swapx-swap tokenIn=S tokenOut=USDC_E amount=2.0
 * 💎 Deposit wS into SwapX vault
 * 🎫 Receive LP tokens
 * 🚜 Stake LP tokens in Beefy vault
-* 💰 Earn high APY rewards (dynamically fetched from Beefy API)
+* 💰 Earn high APY rewards (dynamically fetched from Beefy API via `getBeefyApy()` method)
 * 🔄 Withdrawal functionality
 * 🔍 Detailed transaction links to SonicScan
 
@@ -146,13 +146,13 @@ swapx-swap tokenIn=S tokenOut=USDC_E amount=2.0
   * 💪 Check available borrowing power
 
 - 🏦 **Lending Operations**:
-  * 💰 Supply assets (USDC.e, WETH)
+  * 💰 Supply assets (USDC.e, WETH, S)
   * 🏷️ Borrow against collateral
   * 💸 Repay borrowed positions
   * 📊 View maximum borrowable amounts
   
 - 🔢 **Direct Data Access**:
-  * 💡 New getAaveAccountData method for direct blockchain data fetching
+  * 💡 `getAaveAccountData` method for direct blockchain data fetching
   * 📊 Accurate net worth calculation bypassing text parsing
   * 🔄 Improved reliability with multiple data sources
 
@@ -172,17 +172,17 @@ swapx-swap tokenIn=S tokenOut=USDC_E amount=2.0
   * 📤 Withdraw supplied assets
   
 - 🔢 **Direct Data Access**:
-  * 💡 New getMachfiAccountData method for direct blockchain data fetching
+  * 💡 `getMachfiAccountData` method for direct blockchain data fetching
   * 📊 Accurate market-by-market value calculation
   * 🔄 Improved reliability with direct oracle price integration
 
 ## 🪙 Token Operations
 
-- 🔄 **Native S to wS wrapping**
+- 🔄 **Native S to wS wrapping** (via `sWrapperActionProvider`)
   * 📦 Wrap S tokens to wS for DeFi compatibility
   * 📭 Unwrap wS back to S tokens
   * 💰 Check S/wS balances
-- 💱 **Token Swapping with SwapX**
+- 💱 **Token Swapping with SwapX** (via `swapxActionProvider`)
   * 💵 Swap S to USDC.e for stablecoin exposure
   * 🔷 Swap USDC.e to S for native token exposure
   * 🔁 Automatic token wrapping and approval handling
@@ -242,20 +242,24 @@ To set up the project, follow these steps:
 
 The deFΔI Telegram bot is built using a modern and robust architecture:
 
-- 🔄 **Action Providers**: All DeFi functionality is provided through action providers
+- 🔄 **Action Providers**: All DeFi functionality is provided through action providers that inherit from the base `ActionProvider<EvmWalletProvider>` class
 - 🤖 **Telegraf Framework**: Uses the modern Telegraf.js library for handling Telegram interactions
-- 📋 **Menu System**: Elegant menu system with submenu support for different DeFi categories
+- 📋 **Menu System**: Elegant menu system with submenu support for different DeFi categories:
+  * Main menu, DeFi strategies menu, Token operations menu, Delta strategy menu, MachFi menu, and SwapX menu
 - 💬 **Command Parsing**: Smart command parsing to extract parameters from user messages
 - 🛡️ **Error Handling**: Comprehensive error handling with detailed feedback
-- 🎭 **Action Mapping**: Flexible action mapping system that connects UI actions to backend functionality
+- 🎭 **Action Mapping**: Flexible action mapping system that connects UI actions to backend functionality via callback queries
+- 📊 **Message Handling**: Split message functionality for large response handling
+- 🎮 **Menu Management**: Active menus tracking with the `activeMenus` Map
 
 ## 🔒 Security Features
 
-- ✅ Comprehensive balance checks before operations
-- ⛽ Gas estimation for transactions
+- ✅ Comprehensive balance checks before operations (via `checkTokenBalance` in balanceCheckerActionProvider)
+- ⛽ Gas estimation for transactions (implemented in provider classes with `estimateGas` methods)
 - 🛡️ Safe approval limits
 - 📝 Transaction verification and monitoring
 - ❤️ Health factor monitoring for lending positions
+- 🔐 Network verification before transactions (via `checkNetwork` method in providers)
 
 ## 🌟 Recent Improvements
 
@@ -272,7 +276,7 @@ The deFΔI Telegram bot is built using a modern and robust architecture:
 - 🧩 **Enhanced Debugging**: Comprehensive logging of API responses and parsing steps
 
 ### 💰 Portfolio Value Calculation
-- 🔢 **Direct Blockchain Access**: Direct methods to fetch Aave and MachFi positions
+- 🔢 **Direct Blockchain Access**: Direct methods to fetch Aave (`getAaveAccountData`) and MachFi (`getMachfiAccountData`) positions
 - 🔄 **Dual Approach**: Primary blockchain data with regex fallback
 - 📊 **Accurate Total Value**: Reliable portfolio value calculations for Telegram /balance command
 
@@ -282,11 +286,11 @@ The deFΔI Telegram bot is built using a modern and robust architecture:
 
 We currently offer two delta neutral strategy options:
 
-1. 🏦 **Aave-Based Strategy**:
+1. 🏦 **Aave-Based Strategy** (`executeAaveDeltaNeutral`):
    * 💰 Uses Aave for supplying USDC.e collateral and borrowing wS
    * 🌐 Dependent on USDC.e pool capacity
 
-2. 🆕 **MachFi-Based Strategy**:
+2. 🆕 **MachFi-Based Strategy** (`executeMachFiDeltaNeutral`):
    * 💰 Uses MachFi for supplying USDC.e collateral
    * 🏦 Borrows native S tokens and wraps to wS
    * 🔍 May offer different APYs and risk profiles
@@ -296,5 +300,28 @@ We currently offer two delta neutral strategy options:
    * 🔒 Enhanced risk management techniques
    * 🔄 Automated position rebalancing
 
+## 🧪 Technical Implementation
+
+The codebase is organized around several key components:
+
+1. **Action Providers**: Specialized classes that implement specific DeFi functionality:
+   - `DeltaNeutralActionProvider`: Implements delta neutral strategies
+   - `WSSwapXBeefyActionProvider` & `USDCeSwapXBeefyActionProvider`: Handle Beefy yield farming
+   - `SWrapperActionProvider`: Manages token wrapping operations
+   - `SwapXActionProvider`: Provides DEX swap functionality
+   - `MachFiActionProvider` & `AaveSupplyActionProvider`: Handle lending protocol interactions
+   - `BalanceCheckerActionProvider`: Provides portfolio tracking functionality
+   - `BeefyPortfolioActionProvider`: Monitors Beefy vault positions
+
+2. **Interface Modes**:
+   - `ChatBot.ts`: Implements different interaction modes (Chat, Auto, Demo, Telegram)
+   - `TelegramInterface.ts`: Provides specialized Telegram bot implementation with menu systems
+
+3. **Utility Functions**:
+   - APY calculation helpers (`deltaNeutralAPYCalculator.ts`)
+   - Token balance verification functions
+   - Transaction helpers (gas estimation, sleep functions)
+
+The modular architecture allows for easy extension and maintenance of the codebase.
 
 **Disclaimer**: Cryptocurrency investments involve risk. Always do your own research and consult with a financial advisor.
