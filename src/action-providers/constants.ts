@@ -52,7 +52,7 @@ export const AAVE_POOL_ABI = [
 export const TOKENS = {
   S: { address: "0x0000000000000000000000000000000000000000", price: 0.5, decimals: 18, symbol: "S" },
   WS: { address: "0xd9b626fda1f1df7f385e6f3b5a12d3d568fba93a", price: 0.5, decimals: 18, symbol: "wS" },
-  USDC_E: { address: "0x1717a0d5c8705ee89a8ad6e808268d6a826c97a4", price: 1.0, decimals: 6, symbol: "USDC.e" },
+  USDC_E: { address: "0x29219dd400f2Bf60E5a23d13Be72B486D4038894", price: 1.0, decimals: 6, symbol: "USDC.e" },
   WETH: { address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", price: 2800.0, decimals: 18, symbol: "WETH" }
 };
 

@@ -163,8 +163,8 @@ export class BeefyPortfolioActionProvider extends ActionProvider<EvmWalletProvid
     });
     
     // Start with direct contract checks for more accurate real-time data
-    let portfolioOutput = `### 🐮 Beefy Finance Portfolio for **${address}**\n\n`;
-    portfolioOutput += `*⏰ Last updated: ${new Date().toLocaleString()}*\n\n`;
+    let portfolioOutput = `### 🐮 Beefy Finance Portfolio\n`;
+    portfolioOutput += `- Last Updated: ${new Date().toLocaleString()}\n\n`;
     let totalPortfolioValue = 0;
     let foundPositions = false;
     
@@ -482,17 +482,24 @@ export class BeefyPortfolioActionProvider extends ActionProvider<EvmWalletProvid
       }
     }
     
+    // After processing all vaults, display the portfolio summary
     if (!foundPositions) {
       return "🔍 No active positions found in your Beefy Finance portfolio.";
     }
     
-    portfolioOutput += `### 💰 **Total Portfolio Value:** $${totalPortfolioValue.toLocaleString(undefined, { maximumFractionDigits: 2 })} \n`;
+    portfolioOutput += `\nTotal Portfolio Value: $${totalPortfolioValue.toFixed(2)}\n\n`;
+    if (totalPortfolioValue < 0.01) {
+      portfolioOutput += `\n💡 *Tip: Your Beefy positions appear to be very small. Consider adding more funds to maximize yield farming benefits!*`;
+    } else if (totalPortfolioValue > 0 && totalPortfolioValue < 10) {
+      portfolioOutput += `\n💡 *Tip: You're on the right track with your Beefy investments. Consider exploring delta-neutral strategies for optimized returns!*`;
+    }
+    
     return portfolioOutput;
   }
 
   @CreateAction({
-    name: "check-beefy-portfolio",
-    description: "Check your Beefy Finance portfolio and transaction history",
+    name: "check-portfolio",
+    description: "Check Beefy Finance portfolio for the connected wallet",
     schema: z.object({}).strip(),
   })
   async checkPortfolio(

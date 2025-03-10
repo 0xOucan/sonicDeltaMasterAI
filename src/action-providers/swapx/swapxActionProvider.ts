@@ -34,7 +34,7 @@ import {
 } from "./schemas";
 
 import { checkTokenBalance } from "../balance-checker/balanceCheckerActionProvider";
-import { SwapFailedError, PriceImpactError } from "./errors";
+import { SwapFailedError, PriceImpactError, SlippageExceededError } from "./errors";
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -55,7 +55,7 @@ export class SwapXActionProvider extends ActionProvider<EvmWalletProvider> {
     try {
       const amount = parseUnits(args.amount, 18); // S has 18 decimals
       const address = await walletProvider.getAddress();
-      let response = `🔄 **The swap from S to USDC.e has been successfully executed.** Here are the details of the transactions:\n\n`;
+      let response = `🔄 **Preparing to swap ${args.amount} S to USDC.e using SwapX...**\n\n`;
 
       // Check S balance
       const publicClient = createPublicClient({
@@ -70,70 +70,91 @@ export class SwapXActionProvider extends ActionProvider<EvmWalletProvider> {
       if (balance < amount) {
         return `❌ **Insufficient S balance**. Required: ${formatUnits(amount, 18)} S, Available: ${formatUnits(balance, 18)} S`;
       }
+      
+      response += `1. 💰 Checked S balance: ${formatUnits(balance, 18)} S ✓\n\n`;
 
-      // Calculate minimum amount out with 0.1% slippage if not provided
-      const minAmountOut = args.minAmountOut ? 
-        parseUnits(args.minAmountOut, 6) : 
-        parseUnits("0.939", 6); // Based on the example transaction
+      // Set a very low minimum amount out to ensure the transaction succeeds
+      // This is based on the transaction example showing a minimum of 0.000443 USDC.e
+      // We're using a value that's approximately 0.03% of the expected output for 1 S
+      const expectedRatePerS = 0.44; // Based on transaction logs showing ~0.44 USDC.e per 1 S
+      const calculatedMin = parseFloat(args.amount) * expectedRatePerS * 0.97; // 3% slippage allowance
+      
+      const minAmountOut = args.minAmountOut 
+        ? parseUnits(args.minAmountOut, 6) 
+        : parseUnits(calculatedMin.toFixed(6), 6);
+        
+      console.log(`Using minimum output amount of ${formatUnits(minAmountOut, 6)} USDC.e with 3% slippage protection`);
+      
+      try {
+        // Wrap S to WS first
+        response += `2. 🔄 Wrapping ${args.amount} S to wS...\n`;
+        const wrapTx = await walletProvider.sendTransaction({
+          to: SWAPX_ADDRESSES.WS_TOKEN as Hex,
+          data: encodeFunctionData({
+            abi: WS_TOKEN_ABI,
+            functionName: "deposit"
+          }),
+          value: amount
+        });
 
-      // Wrap S to WS first
-      const wrapTx = await walletProvider.sendTransaction({
-        to: SWAPX_ADDRESSES.WS_TOKEN as Hex,
-        data: encodeFunctionData({
-          abi: WS_TOKEN_ABI,
-          functionName: "deposit"
-        }),
-        value: amount
-      });
+        await walletProvider.waitForTransactionReceipt(wrapTx);
+        response += `   ✅ Success! Transaction: [View Transaction](${EXPLORER_BASE_URL}${wrapTx})\n\n`;
+        await sleep(2000); // Wait for state updates
 
-      response += `1. 🔄 Wrapped ${args.amount} S to wS  \n` +
-                  `   Transaction: [View Transaction](${EXPLORER_BASE_URL}${wrapTx})\n\n`;
+        // Approve WS spending
+        response += `3. 🔐 Approving wS for SwapX Router...\n`;
+        const approveTx = await walletProvider.sendTransaction({
+          to: SWAPX_ADDRESSES.WS_TOKEN as Hex,
+          data: encodeFunctionData({
+            abi: WS_TOKEN_ABI,
+            functionName: "approve",
+            args: [SWAPX_ADDRESSES.ROUTER as Hex, amount]
+          })
+        });
 
-      await walletProvider.waitForTransactionReceipt(wrapTx);
-      await sleep(2000); // Wait for state updates
+        await walletProvider.waitForTransactionReceipt(approveTx);
+        response += `   ✅ Success! Transaction: [View Transaction](${EXPLORER_BASE_URL}${approveTx})\n\n`;
+        await sleep(2000);
 
-      // Approve WS spending
-      const approveTx = await walletProvider.sendTransaction({
-        to: SWAPX_ADDRESSES.WS_TOKEN as Hex,
-        data: encodeFunctionData({
-          abi: WS_TOKEN_ABI,
-          functionName: "approve",
-          args: [SWAPX_ADDRESSES.ROUTER as Hex, amount]
-        })
-      });
+        // Execute swap
+        response += `4. 💱 Executing swap of ${args.amount} S to USDC.e...\n`;
+        const swapParams = {
+          tokenIn: TOKEN_ADDRESSES.WS,
+          tokenOut: TOKEN_ADDRESSES.USDC_E,
+          recipient: address as Hex,
+          amountIn: amount,
+          amountOutMinimum: minAmountOut,
+          limitSqrtPrice: 0n
+        };
 
-      response += `2. ✅ Approved wS spending for SwapX  \n` +
-                  `   Transaction: [View Transaction](${EXPLORER_BASE_URL}${approveTx})\n\n`;
+        const swapTx = await walletProvider.sendTransaction({
+          to: SWAPX_ADDRESSES.ROUTER as Hex,
+          data: encodeFunctionData({
+            abi: SWAPX_ROUTER_ABI,
+            functionName: "exactInputSingle",
+            args: [swapParams]
+          })
+        });
 
-      await walletProvider.waitForTransactionReceipt(approveTx);
-      await sleep(2000);
+        await walletProvider.waitForTransactionReceipt(swapTx);
+        response += `   ✅ Success! Transaction: [View Transaction](${EXPLORER_BASE_URL}${swapTx})\n\n`;
 
-      // Execute swap
-      const swapParams = {
-        tokenIn: TOKEN_ADDRESSES.WS,
-        tokenOut: TOKEN_ADDRESSES.USDC_E,
-        recipient: address as Hex,
-        amountIn: amount,
-        amountOutMinimum: minAmountOut,
-        limitSqrtPrice: 0n
-      };
-
-      const swapTx = await walletProvider.sendTransaction({
-        to: SWAPX_ADDRESSES.ROUTER as Hex,
-        data: encodeFunctionData({
-          abi: SWAPX_ROUTER_ABI,
-          functionName: "exactInputSingle",
-          args: [swapParams]
-        })
-      });
-
-      response += `3. 💱 Swapped ${args.amount} S for USDC.e  \n` +
-                  `   Transaction: [View Transaction](${EXPLORER_BASE_URL}${swapTx})\n\n`;
-
-      await walletProvider.waitForTransactionReceipt(swapTx);
-      response += `If you need any further assistance, feel free to ask!`;
-      return response;
-
+        response += `🎉 **Swap completed successfully!** Your ${args.amount} S tokens have been swapped to USDC.e.\n\n`;
+        response += `If you need any further assistance, feel free to ask!`;
+        return response;
+      } catch (error) {
+        console.error('Transaction error:', error);
+        
+        // Check for specific error messages
+        if (error instanceof Error) {
+          const slippageError = SlippageExceededError.fromError(error, args.amount, "S");
+          if (slippageError) {
+            return slippageError.getUserFriendlyMessage();
+          }
+        }
+        
+        throw new SwapFailedError(error instanceof Error ? error.message : 'Unknown error');
+      }
     } catch (error) {
       console.error('Swap error:', error);
       throw new SwapFailedError(error instanceof Error ? error.message : 'Unknown error');
@@ -152,7 +173,7 @@ export class SwapXActionProvider extends ActionProvider<EvmWalletProvider> {
     try {
       const amount = parseUnits(args.amount, 6); // USDC.e has 6 decimals
       const address = await walletProvider.getAddress();
-      let response = `🔄 **The swap from USDC.e to S has been successfully executed.** Here are the details of the transactions:\n\n`;
+      let response = `🔄 **Preparing to swap ${args.amount} USDC.e to S using SwapX...**\n\n`;
 
       // Check USDC.e balance
       try {
@@ -174,53 +195,72 @@ export class SwapXActionProvider extends ActionProvider<EvmWalletProvider> {
         return `❌ Error checking balance: ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
 
-      // Calculate minimum amount out with 0.1% slippage if not provided
-      const minAmountOut = args.minAmountOut ? 
-        parseUnits(args.minAmountOut, 18) : 
-        parseUnits("1.98", 18); // Example with 0.1% slippage
+      // Set appropriate minimum amount out
+      // This is based on the exchange rate of approximately 1 USDC.e ≈ 2 S
+      const expectedRatePerUSDCe = 2.0; // Based on approximate exchange rate
+      const calculatedMin = parseFloat(args.amount) * expectedRatePerUSDCe * 0.97; // 3% slippage allowance
+      
+      const minAmountOut = args.minAmountOut 
+        ? parseUnits(args.minAmountOut, 18) 
+        : parseUnits(calculatedMin.toFixed(18), 18);
+        
+      console.log(`Using minimum output amount of ${formatUnits(minAmountOut, 18)} S with 3% slippage protection`);
 
-      // Approve USDC.e spending
-      const approveTx = await walletProvider.sendTransaction({
-        to: TOKEN_ADDRESSES.USDC_E as Hex,
-        data: encodeFunctionData({
-          abi: ERC20_ABI,
-          functionName: "approve",
-          args: [SWAPX_ADDRESSES.ROUTER as Hex, amount]
-        })
-      });
+      try {
+        // Approve USDC.e spending
+        response += `2. 🔐 Approving USDC.e for SwapX Router...\n`;
+        const approveTx = await walletProvider.sendTransaction({
+          to: TOKEN_ADDRESSES.USDC_E as Hex,
+          data: encodeFunctionData({
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [SWAPX_ADDRESSES.ROUTER as Hex, amount]
+          })
+        });
 
-      response += `2. ✅ Approved USDC.e spending for SwapX  \n` +
-                  `   Transaction: [View Transaction](${EXPLORER_BASE_URL}${approveTx})\n\n`;
+        await walletProvider.waitForTransactionReceipt(approveTx);
+        response += `   ✅ Success! Transaction: [View Transaction](${EXPLORER_BASE_URL}${approveTx})\n\n`;
+        await sleep(2000);
 
-      await walletProvider.waitForTransactionReceipt(approveTx);
-      await sleep(2000);
+        // Execute swap
+        response += `3. 💱 Executing swap of ${args.amount} USDC.e to S...\n`;
+        const swapParams = {
+          tokenIn: TOKEN_ADDRESSES.USDC_E,
+          tokenOut: TOKEN_ADDRESSES.WS,
+          recipient: address as Hex,
+          amountIn: amount,
+          amountOutMinimum: minAmountOut,
+          limitSqrtPrice: 0n
+        };
 
-      // Execute swap
-      const swapParams = {
-        tokenIn: TOKEN_ADDRESSES.USDC_E,
-        tokenOut: TOKEN_ADDRESSES.WS,
-        recipient: address as Hex,
-        amountIn: amount,
-        amountOutMinimum: minAmountOut,
-        limitSqrtPrice: 0n
-      };
+        const swapTx = await walletProvider.sendTransaction({
+          to: SWAPX_ADDRESSES.ROUTER as Hex,
+          data: encodeFunctionData({
+            abi: SWAPX_ROUTER_ABI,
+            functionName: "exactInputSingle",
+            args: [swapParams]
+          })
+        });
 
-      const swapTx = await walletProvider.sendTransaction({
-        to: SWAPX_ADDRESSES.ROUTER as Hex,
-        data: encodeFunctionData({
-          abi: SWAPX_ROUTER_ABI,
-          functionName: "exactInputSingle",
-          args: [swapParams]
-        })
-      });
+        await walletProvider.waitForTransactionReceipt(swapTx);
+        response += `   ✅ Success! Transaction: [View Transaction](${EXPLORER_BASE_URL}${swapTx})\n\n`;
 
-      response += `3. 💱 Swapped ${args.amount} USDC.e for S  \n` +
-                  `   Transaction: [View Transaction](${EXPLORER_BASE_URL}${swapTx})\n\n`;
-
-      await walletProvider.waitForTransactionReceipt(swapTx);
-      response += `If you have any more requests or need further assistance, just let me know!`;
-      return response;
-
+        response += `🎉 **Swap completed successfully!** Your ${args.amount} USDC.e have been swapped to S.\n\n`;
+        response += `If you need any further assistance, feel free to ask!`;
+        return response;
+      } catch (error) {
+        console.error('Transaction error:', error);
+        
+        // Check for specific error messages
+        if (error instanceof Error) {
+          const slippageError = SlippageExceededError.fromError(error, args.amount, "USDC.e");
+          if (slippageError) {
+            return slippageError.getUserFriendlyMessage();
+          }
+        }
+        
+        throw new SwapFailedError(error instanceof Error ? error.message : 'Unknown error');
+      }
     } catch (error) {
       console.error('Swap error:', error);
       throw new SwapFailedError(error instanceof Error ? error.message : 'Unknown error');
@@ -263,12 +303,23 @@ export class SwapXActionProvider extends ActionProvider<EvmWalletProvider> {
         ...txParams
       });
 
-      // Add 20% buffer to gas estimate
-      return (gasEstimate * 120n) / 100n;
+      // Add 30% buffer to gas estimate for swap transactions to ensure they go through
+      return (gasEstimate * 130n) / 100n;
     } catch (error) {
+      console.error('Gas estimation error:', error);
+      
       if (error instanceof Error) {
-        throw new Error(`Failed to estimate gas: ${error.message}`);
+        const errorMessage = error.message;
+        
+        // If the error is due to "Too little received", we'll throw a SlippageExceededError
+        if (errorMessage.includes('Too little received')) {
+          const slippageError = new SlippageExceededError("the requested", "tokens");
+          throw slippageError;
+        }
+        
+        throw new Error(`Failed to estimate gas: ${errorMessage}`);
       }
+      
       throw new Error('Failed to estimate gas: Unknown error');
     }
   }

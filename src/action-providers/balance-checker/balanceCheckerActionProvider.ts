@@ -249,34 +249,42 @@ export class BalanceCheckerActionProvider extends ActionProvider<EvmWalletProvid
         console.error("Error fetching MachFi data:", error);
       }
 
-      // Calculate total portfolio value
-      const totalWalletValue = sValue + wsValue + usdceValue + wethValue;
+      // After gathering all data, calculate total amounts and create response
       
-      // For DeFi value, use net worth to avoid double counting of debt
-      const totalDefiValue = aaveData.netWorth + machfiData.netWorth + beefyData.totalValue;
-      const totalPortfolioValue = totalWalletValue + totalDefiValue;
+      // Total wallet value
+      const walletValue = sValue + wsValue + usdceValue + wethValue;
+      
+      // Total DeFi value
+      const defiValue = aaveData.totalValue + machfiData.totalValue + beefyData.totalValue;
+      
+      // Total portfolio value
+      const totalValue = walletValue + defiValue;
+      
+      // Calculate percentages
+      const walletPercentage = (walletValue / totalValue * 100).toFixed(1);
+      const defiPercentage = (defiValue / totalValue * 100).toFixed(1);
+      
+      // Create the formatted response
+      const response = `### 📊 Portfolio Summary
 
-      // Format the response with emojis for better visibility
-      let response = `📊 𝗣𝗢𝗥𝗧𝗙𝗢𝗟𝗜𝗢 𝗦𝗨𝗠𝗠𝗔𝗥𝗬
+#### 💼 Wallet Balances
+- Native S: ${sBalanceFormatted} S ($${sValue.toFixed(2)})
+- Wrapped S (wS): ${wsBalanceFormatted} wS ($${wsValue.toFixed(2)})
+- USDC.e: ${usdceBalanceFormatted} USDC.e ($${usdceValue.toFixed(2)})
+- WETH: ${wethBalanceFormatted} WETH ($${wethValue.toFixed(2)})
 
-### 💼 Wallet Balances
-- 🔷 Native S: ${sBalanceFormatted} S ($${sValue.toFixed(2)})
-- 🔶 Wrapped S (wS): ${wsBalanceFormatted} wS ($${wsValue.toFixed(2)})
-- 💵 USDC.e: ${usdceBalanceFormatted} USDC.e ($${usdceValue.toFixed(2)})
-- 💎 WETH: ${wethBalanceFormatted} WETH ($${wethValue.toFixed(2)})
-
-### 🏦 DeFi Positions
-- 🌊 Aave: $${aaveData.netWorth.toFixed(2)}
-- ��️ MachFi: $${machfiData.netWorth.toFixed(2)}
+#### 🏦 DeFi Positions
+- Aave: $${aaveData.netWorth.toFixed(2)}
+- MachFi: $${machfiData.netWorth.toFixed(2)}
 - 🐮 Beefy Vaults: $${beefyData.totalValue.toFixed(2)}
 
-### 💰 Total Portfolio Value
-- 🔥 Total Value: $${totalPortfolioValue.toFixed(2)}
-  - 👝 Wallet Value: $${totalWalletValue.toFixed(2)} (${(totalWalletValue / totalPortfolioValue * 100 || 0).toFixed(1)}%)
-  - 🏆 DeFi Value: $${totalDefiValue.toFixed(2)} (${(totalDefiValue / totalPortfolioValue * 100 || 0).toFixed(1)}%)
+#### 💰 Total Portfolio Value
+- Total Value: $${totalValue.toFixed(2)}
+  - Wallet Value: $${walletValue.toFixed(2)} (${walletPercentage}%)
+  - DeFi Value: $${defiValue.toFixed(2)} (${defiPercentage}%)
 
-✨ Need further details? Just ask!`;
-
+✨ If you need further details or assistance with your portfolio, just let me know!`;
+      
       return response;
     } catch (error) {
       console.error("Error in checkBalances:", error);
@@ -289,64 +297,111 @@ export class BalanceCheckerActionProvider extends ActionProvider<EvmWalletProvid
    */
   private async fetchBeefyPortfolioData(walletProvider: EvmWalletProvider): Promise<{ totalValue: number }> {
     try {
-      const address = await walletProvider.getAddress();
-      const publicClient = createPublicClient({
-        chain: sonic,
-        transport: http(),
-      });
-
-      // Known vault addresses we need to check (from the beefyPortfolioActionProvider)
-      const vaultAddresses = [
-        "0x816d2aeaff13dd1ef3a4a2e16ee6ca4b9e50ddd8", // ws-usdc.e vault
-        "0x6f8F189250203C6387656B2cAbb00C23b7b7e680", // usdc.e vault
-      ];
-
+      console.log("Fetching Beefy portfolio data...");
+      
+      // Use the beefyProvider to get accurate Beefy portfolio data
+      // Instead of our own implementation with hardcoded values
+      const beefyPortfolioData = await this.beefyProvider.checkPortfolio(walletProvider);
+      console.log("Received Beefy portfolio data", beefyPortfolioData);
+      
+      // Extract the total value from the response
+      // Look for the line with "Total Portfolio Value" or similar
+      const totalValueMatch = beefyPortfolioData.match(/Total Portfolio Value:?\s+\$(\d+\.?\d*)/i);
       let totalValue = 0;
-
-      // Check each vault for user's balance
-      for (const vaultAddress of vaultAddresses) {
-        try {
-          // Get user's balance in the vault
-          const balance = await publicClient.readContract({
-            address: vaultAddress as Hex,
-            abi: BEEFY_VAULT_ABI,
-            functionName: 'balanceOf',
-            args: [address as Hex]
-          }) as bigint;
-          
-          // Only process vaults with actual balance
-          if (balance > BigInt(0)) {
-            const ppfs = await publicClient.readContract({
-              address: vaultAddress as Hex,
-              abi: BEEFY_VAULT_ABI,
-              functionName: 'getPricePerFullShare'
-            }) as bigint;
-
-            // Attempt to get the vault data from the timeline API
-            // Simplified calculation based on what we can see from the Beefy provider
-            // This is a simplified version - the actual Beefy provider does more complex calculations
-            // with API fetches for prices and APYs
-            const tokenBalance = Number(formatUnits(balance, 18));
-            const pricePerShare = Number(formatUnits(ppfs, 18));
-            
-            // Estimate the USD value - this is just an approximation
-            // In reality, we'd need to fetch the LP token price from an API or calculate it
-            // Based on the pool's token composition
-            const usdValue = vaultAddress === "0x816d2aeaff13dd1ef3a4a2e16ee6ca4b9e50ddd8" 
-              ? 9.38  // Hardcoded value from logs for ws-usdc.e vault
-              : 3.50; // Hardcoded value from logs for usdc.e vault
-              
-            totalValue += usdValue;
-          }
-        } catch (error) {
-          console.error(`Error checking vault ${vaultAddress}:`, error);
+      
+      if (totalValueMatch && totalValueMatch[1]) {
+        totalValue = parseFloat(totalValueMatch[1]);
+        console.log(`Extracted total Beefy portfolio value: $${totalValue}`);
+      } else {
+        // If we couldn't find a match in the formatted output, try to extract from any number we can find
+        const anyNumberMatch = beefyPortfolioData.match(/\$(\d+\.?\d*)/);
+        if (anyNumberMatch && anyNumberMatch[1]) {
+          totalValue = parseFloat(anyNumberMatch[1]);
+          console.log(`Extracted approximate Beefy portfolio value: $${totalValue}`);
+        } else {
+          console.log("Could not extract Beefy portfolio value from response");
         }
       }
-
+      
       return { totalValue };
     } catch (error) {
       console.error('Error fetching Beefy portfolio data:', error);
       return { totalValue: 0 };
+    }
+  }
+
+  /**
+   * Check wallet balances without DeFi positions
+   */
+  @CreateAction({
+    name: "check-wallet",
+    description: "Check only wallet balances without DeFi positions",
+    schema: z.object({}).strip(),
+  })
+  async checkWallet(walletProvider: EvmWalletProvider): Promise<string> {
+    try {
+      const address = await walletProvider.getAddress();
+      const publicClient = createPublicClient({
+        chain: sonic,
+        transport: http()
+      });
+
+      // Get native S balance
+      const nativeBalance = await publicClient.getBalance({ address: address as Hex });
+      const nativePrice = TOKENS.wS.price;
+      const nativeUSD = Number(formatUnits(nativeBalance, 18)) * nativePrice;
+      
+      // Get wS balance
+      const wsBalance = await publicClient.readContract({
+        address: TOKENS.wS.address as Hex,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [address as Hex],
+      });
+      const wsBalanceFormatted = Number(formatUnits(wsBalance, 18)).toFixed(4);
+      const wsValue = Number(formatUnits(wsBalance, 18)) * TOKENS.wS.price;
+      
+      // Get USDC.e balance
+      const usdceBalance = await publicClient.readContract({
+        address: TOKENS.USDC_E.address as Hex,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [address as Hex],
+      });
+      const usdceBalanceFormatted = Number(formatUnits(usdceBalance, 6)).toFixed(4);
+      const usdceValue = Number(formatUnits(usdceBalance, 6)) * TOKENS.USDC_E.price;
+      
+      // Get WETH balance
+      const wethBalance = await publicClient.readContract({
+        address: TOKENS.WETH.address as Hex,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [address as Hex],
+      });
+      const wethBalanceFormatted = Number(formatUnits(wethBalance, 18)).toFixed(4);
+      const wethValue = Number(formatUnits(wethBalance, 18)) * TOKENS.WETH.price;
+      
+      const sBalanceFormatted = Number(formatUnits(nativeBalance, 18)).toFixed(4);
+
+      // Total wallet value
+      const walletValue = nativeUSD + wsValue + usdceValue + wethValue;
+      
+      // Create the formatted response
+      const response = `### 💼 Wallet Balances
+
+- 🔷 Native S: ${sBalanceFormatted} S ($${nativeUSD.toFixed(2)})
+- 🔶 Wrapped S (wS): ${wsBalanceFormatted} wS ($${wsValue.toFixed(2)})
+- 💵 USDC.e: ${usdceBalanceFormatted} USDC.e ($${usdceValue.toFixed(2)})
+- 💎 WETH: ${wethBalanceFormatted} WETH ($${wethValue.toFixed(2)})
+
+### 💰 Total Wallet Value: $${walletValue.toFixed(2)}
+
+📝 *This shows only tokens in your wallet. Use /balance to see your complete portfolio including DeFi positions.*`;
+      
+      return response;
+    } catch (error) {
+      console.error("Error in checkWallet:", error);
+      return `Failed to check wallet balances: ${error instanceof Error ? error.message : JSON.stringify(error)}`;
     }
   }
 

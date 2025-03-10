@@ -1,17 +1,8 @@
-# 🚀 SONICdeltaAIMASTER
+# 🚀 deFΔI
 
-An intelligent 🤖 blockchain assistant for Sonic Network, specializing in **Delta Neutral DeFi strategies** with comprehensive portfolio management and advanced yield optimization capabilities.
+An intelligent 🤖 blockchain AI agent for Sonic Network, specializing in **Delta Neutral DeFi strategies** with comprehensive portfolio management and advanced yield optimization capabilities.
 
 ## 🔥 Core Features: Delta Neutral Strategies
-
-### 🏦 Aave Delta Neutral Strategy
-
-Our original Delta Neutral strategy delivers stable, market-neutral yields by balancing lending and yield farming positions:
-
-1. 💰 **Supply USDC.e to Aave** as collateral
-2. 🏦 **Borrow wS tokens** at 50% of borrowing capacity
-3. 🌾 **Deploy borrowed wS** into Beefy's high-yield wS-SwapX vault
-4. 💸 **Earn positive yield spread** between borrowing costs and farming returns
 
 ### 🆕 MachFi Delta Neutral Strategy
 
@@ -22,6 +13,15 @@ Our new MachFi-based Delta Neutral strategy offers an alternative approach:
 3. 🔄 **Wrap S tokens to wS**
 4. 🌾 **Deploy wS** into Beefy's high-yield wS-SwapX vault
 5. 💸 **Earn positive yield spread** between borrowing costs and farming returns
+
+### 🏦 Aave Delta Neutral Strategy
+
+Our original Delta Neutral strategy delivers stable, market-neutral yields by balancing lending and yield farming positions:
+
+1. 💰 **Supply USDC.e to Aave** as collateral
+2. 🏦 **Borrow wS tokens** at 50% of borrowing capacity
+3. 🌾 **Deploy borrowed wS** into Beefy's high-yield wS-SwapX vault
+4. 💸 **Earn positive yield spread** between borrowing costs and farming returns
 
 Both strategies offer these advantages:
 
@@ -198,7 +198,7 @@ swapx-swap tokenIn=S tokenOut=USDC_E amount=2.0
 - 🔷 Native S Token
 - 💵 USDC.e (Bridged USDC)
 - ⚡ WETH (Wrapped ETH)
-- 🔷 wS (Wrapped S)
+- 🔶 wS (Wrapped S)
 - 📈 aSonWETH (Aave Sonic WETH)
 - 💰 aSonUSDC.e (Aave Sonic USDC.e)
 - 🏦 cS, cUSDC.e (MachFi tokens)
@@ -237,6 +237,17 @@ To set up the project, follow these steps:
    - 📱 Telegram mode for mobile access
    - 🎓 Demo mode for guided tour
    - 🤖 Auto mode for autonomous strategy execution
+
+## 📱 Telegram Bot Architecture
+
+The deFΔI Telegram bot is built using a modern and robust architecture:
+
+- 🔄 **Action Providers**: All DeFi functionality is provided through action providers
+- 🤖 **Telegraf Framework**: Uses the modern Telegraf.js library for handling Telegram interactions
+- 📋 **Menu System**: Elegant menu system with submenu support for different DeFi categories
+- 💬 **Command Parsing**: Smart command parsing to extract parameters from user messages
+- 🛡️ **Error Handling**: Comprehensive error handling with detailed feedback
+- 🎭 **Action Mapping**: Flexible action mapping system that connects UI actions to backend functionality
 
 ## 🔒 Security Features
 

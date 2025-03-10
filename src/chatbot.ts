@@ -149,7 +149,7 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
     });
 
     const tools = await getLangChainTools(agentkit);
-    const memory = new MemorySaver();
+    const memorySaver = new MemorySaver();
     const agentConfig = {
       configurable: { thread_id: "Sonic-Blockchain-Chatbot" }
     };
@@ -157,7 +157,7 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
     const reactAgent = await createReactAgent({
       llm,
       tools,
-      checkpointSaver: memory,
+      checkpointSaver: memorySaver,
       messageModifier: `
         You are a helpful agent that can interact onchain using the Coinbase Developer Platform AgentKit.
         You are empowered to interact onchain using your tools.
@@ -196,12 +196,243 @@ async function initializeAgent(): Promise<{ agent: Agent; config: AgentConfig }>
 
     return { 
       agent: {
-        invoke: async (input: string, config?: AgentConfig) => {
-          const result = await reactAgent.invoke(
-            { messages: [new HumanMessage(input)] },
-            config || agentConfig
-          );
-          return result.messages[result.messages.length - 1].content as string;
+        invoke: async (input: string, config?: AgentConfig): Promise<string> => {
+          console.log("🔍 Agent received command:", input);
+          
+          try {
+            // Direct command handling for common patterns
+            const trimmedInput = input.trim().toLowerCase();
+            
+            // Handle wrap command
+            if (trimmedInput.startsWith('wrap ')) {
+              console.log(`🔄 Direct wrap command detected: ${input}`);
+              const match = input.match(/wrap\s+(\d+\.?\d*)/i);
+              if (match && match[1]) {
+                const amount = match[1];
+                
+                // Format as a clear instruction for the LLM
+                const formattedCommand = `Wrap ${amount} S tokens to wS tokens. Execute the wrap-s action with the amount parameter set to ${amount}.`;
+                console.log(`💬 Reformatting to: ${formattedCommand}`);
+                
+                const result = await reactAgent.invoke(
+                  { messages: [new HumanMessage(formattedCommand)] },
+                  config || agentConfig
+                );
+                
+                console.log("✅ Wrap command completed");
+                return result.messages[result.messages.length - 1].content as string;
+              }
+            }
+            
+            // Handle unwrap command
+            if (trimmedInput.startsWith('unwrap ')) {
+              console.log(`🔄 Direct unwrap command detected: ${input}`);
+              const match = input.match(/unwrap\s+(\d+\.?\d*)/i);
+              if (match && match[1]) {
+                const amount = match[1];
+                
+                // Format as a clear instruction for the LLM
+                const formattedCommand = `Unwrap ${amount} wS tokens to S tokens. Execute the unwrap-ws action with the amount parameter set to ${amount}.`;
+                console.log(`💬 Reformatting to: ${formattedCommand}`);
+                
+                const result = await reactAgent.invoke(
+                  { messages: [new HumanMessage(formattedCommand)] },
+                  config || agentConfig
+                );
+                
+                console.log("✅ Unwrap command completed");
+                return result.messages[result.messages.length - 1].content as string;
+              }
+            }
+            
+            // Handle transfer command
+            if (trimmedInput.startsWith('transfer ')) {
+              console.log(`💸 Direct transfer command detected: ${input}`);
+              const match = input.match(/transfer\s+(\w+)\s+(\d+\.?\d*)\s+(0x[a-fA-F0-9]{40})/i);
+              if (match && match[1] && match[2] && match[3]) {
+                const token = match[1];
+                const amount = match[2];
+                const address = match[3];
+                
+                // Format as a clear instruction for the LLM
+                const formattedCommand = `Transfer ${amount} ${token} tokens to address ${address}.`;
+                console.log(`💬 Reformatting to: ${formattedCommand}`);
+                
+                const result = await reactAgent.invoke(
+                  { messages: [new HumanMessage(formattedCommand)] },
+                  config || agentConfig
+                );
+                
+                console.log("✅ Transfer command completed");
+                return result.messages[result.messages.length - 1].content as string;
+              }
+            }
+            
+            // Handle supplycollateral command for MachFi
+            if (trimmedInput.startsWith('supplycollateral ')) {
+              console.log(`💰 Direct supplycollateral command detected: ${input}`);
+              const match = input.match(/supplycollateral\s+(\d+\.?\d*)\s+(\w+)/i);
+              if (match && match[1] && match[2]) {
+                const amount = match[1];
+                const asset = match[2];
+                
+                // Format as a clear instruction for the LLM
+                const formattedCommand = `Supply ${amount} ${asset} as collateral to MachFi. Execute the machfi-supply-collateral action with amount=${amount} and asset=${asset}.`;
+                console.log(`💬 Reformatting to: ${formattedCommand}`);
+                
+                const result = await reactAgent.invoke(
+                  { messages: [new HumanMessage(formattedCommand)] },
+                  config || agentConfig
+                );
+                
+                console.log("✅ SupplyCollateral command completed");
+                return result.messages[result.messages.length - 1].content as string;
+              }
+            }
+            
+            // Handle borrow command for MachFi
+            if (trimmedInput.startsWith('borrow ')) {
+              console.log(`🏦 Direct borrow command detected: ${input}`);
+              const match = input.match(/borrow\s+(\d+\.?\d*)\s+(\w+)/i);
+              if (match && match[1] && match[2]) {
+                const amount = match[1];
+                const asset = match[2];
+                
+                // Format as a clear instruction for the LLM
+                const formattedCommand = `Borrow ${amount} ${asset} from MachFi. Execute the machfi-borrow action with amount=${amount} and asset=${asset}.`;
+                console.log(`💬 Reformatting to: ${formattedCommand}`);
+                
+                const result = await reactAgent.invoke(
+                  { messages: [new HumanMessage(formattedCommand)] },
+                  config || agentConfig
+                );
+                
+                console.log("✅ Borrow command completed");
+                return result.messages[result.messages.length - 1].content as string;
+              }
+            }
+            
+            // Handle repay command for MachFi
+            if (trimmedInput.startsWith('repay ')) {
+              console.log(`💸 Direct repay command detected: ${input}`);
+              const match = input.match(/repay\s+(\d+\.?\d*)\s+(\w+)/i);
+              if (match && match[1] && match[2]) {
+                const amount = match[1];
+                const asset = match[2];
+                
+                // Format as a clear instruction for the LLM
+                const formattedCommand = `Repay ${amount} ${asset} to MachFi. Execute the machfi-repay action with amount=${amount} and asset=${asset}.`;
+                console.log(`💬 Reformatting to: ${formattedCommand}`);
+                
+                const result = await reactAgent.invoke(
+                  { messages: [new HumanMessage(formattedCommand)] },
+                  config || agentConfig
+                );
+                
+                console.log("✅ Repay command completed");
+                return result.messages[result.messages.length - 1].content as string;
+              }
+            }
+            
+            // Handle delta-neutral-apy command
+            if (trimmedInput === 'delta-neutral-apy') {
+              console.log(`📊 Delta neutral APY check command detected`);
+              
+              const formattedCommand = `Show the current APY for delta neutral strategies. Execute the delta-neutral-apy action.`;
+              console.log(`💬 Reformatting to: ${formattedCommand}`);
+              
+              const result = await reactAgent.invoke(
+                { messages: [new HumanMessage(formattedCommand)] },
+                config || agentConfig
+              );
+              
+              console.log("✅ Delta neutral APY check completed");
+              return result.messages[result.messages.length - 1].content as string;
+            }
+            
+            // Handle swapx-s-to-usdce command
+            if (trimmedInput.startsWith('swapx-s-to-usdce ')) {
+              console.log(`💱 SwapX S to USDC.e command detected: ${input}`);
+              const match = input.match(/swapx-s-to-usdce\s+(\d+\.?\d*)/i);
+              if (match && match[1]) {
+                const amount = match[1];
+                
+                // Format as a clear instruction for the LLM
+                const formattedCommand = `Swap ${amount} S tokens to USDC.e using SwapX. Execute the swapx-s-to-usdce action with amount=${amount}.`;
+                console.log(`💬 Reformatting to: ${formattedCommand}`);
+                
+                const result = await reactAgent.invoke(
+                  { messages: [new HumanMessage(formattedCommand)] },
+                  config || agentConfig
+                );
+                
+                console.log("✅ SwapX S to USDC.e completed");
+                return result.messages[result.messages.length - 1].content as string;
+              }
+            }
+            
+            // Handle swapx-usdce-to-s command
+            if (trimmedInput.startsWith('swapx-usdce-to-s ')) {
+              console.log(`💱 SwapX USDC.e to S command detected: ${input}`);
+              const match = input.match(/swapx-usdce-to-s\s+(\d+\.?\d*)/i);
+              if (match && match[1]) {
+                const amount = match[1];
+                
+                // Format as a clear instruction for the LLM
+                const formattedCommand = `Swap ${amount} USDC.e to S tokens using SwapX. Execute the swapx-usdce-to-s action with amount=${amount}.`;
+                console.log(`💬 Reformatting to: ${formattedCommand}`);
+                
+                const result = await reactAgent.invoke(
+                  { messages: [new HumanMessage(formattedCommand)] },
+                  config || agentConfig
+                );
+                
+                console.log("✅ SwapX USDC.e to S completed");
+                return result.messages[result.messages.length - 1].content as string;
+              }
+            }
+            
+            // Handle generic swapx-swap command
+            if (trimmedInput.startsWith('swapx-swap ')) {
+              console.log(`💱 Generic SwapX command detected: ${input}`);
+              const tokenInMatch = input.match(/tokenin=(\w+)/i);
+              const tokenOutMatch = input.match(/tokenout=(\w+)/i);
+              const amountMatch = input.match(/amount=(\d+\.?\d*)/i);
+              
+              if (tokenInMatch && tokenOutMatch && amountMatch) {
+                const tokenIn = tokenInMatch[1];
+                const tokenOut = tokenOutMatch[1];
+                const amount = amountMatch[1];
+                
+                // Format as a clear instruction for the LLM
+                const formattedCommand = `Swap ${amount} ${tokenIn} to ${tokenOut} using SwapX. Execute the swapx-swap action with tokenIn=${tokenIn}, tokenOut=${tokenOut}, amount=${amount}.`;
+                console.log(`💬 Reformatting to: ${formattedCommand}`);
+                
+                const result = await reactAgent.invoke(
+                  { messages: [new HumanMessage(formattedCommand)] },
+                  config || agentConfig
+                );
+                
+                console.log("✅ Generic SwapX swap completed");
+                return result.messages[result.messages.length - 1].content as string;
+              }
+            }
+            
+            // Let the agent process normally
+            console.log("💬 Sending to LLM for processing:", input);
+            const result = await reactAgent.invoke(
+              { messages: [new HumanMessage(input)] },
+              config || agentConfig
+            );
+            console.log("✅ Agent completed processing");
+            return result.messages[result.messages.length - 1].content as string;
+          } catch (error) {
+            console.error("❌ Error in agent invoke:", error);
+            if (error instanceof Error) {
+              return `Error executing command: ${error.message}`;
+            }
+            return "An unknown error occurred while processing your request.";
+          }
         },
         walletProvider,
         actionProviders: actionProviders,
@@ -308,16 +539,34 @@ You can also check your wallet balance with the command "check wallet balances".
 async function runTelegramMode(agent: Agent, config: AgentConfig) {
   console.log("Starting Telegram mode... Waiting for /start command");
 
-  return new Promise<void>((resolve) => {
-    const telegram = new TelegramInterface(agent, config, {
+  // Use the TelegramInterface class directly
+  const telegramInterface = new TelegramInterface(
+    agent,
+    config,
+    {
       onExit: () => {
-        console.log("Exiting Telegram mode...");
-        resolve();
+        // Signal the process to exit by emitting SIGINT
+        process.emit('SIGINT', 'SIGINT');
       },
       onKill: () => {
-        console.log("Kill command received. Shutting down...");
-        process.exit(0);
-      },
+        // Force exit with 0 status code
+        setTimeout(() => process.exit(0), 500);
+      }
+    }
+  );
+
+  // This will keep the process running until the bot is stopped
+  return new Promise<void>((resolve) => {
+    // Set up a listener for SIGINT signal that can be triggered from the bot
+    process.once('SIGINT', () => {
+      console.log("Exiting Telegram mode...");
+      resolve();
+    });
+
+    // Set up a listener for uncaughtException to handle any bot errors
+    process.on('uncaughtException', (error) => {
+      console.error("Uncaught exception in Telegram bot:", error);
+      resolve();
     });
   });
 }

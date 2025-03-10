@@ -62,18 +62,45 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Define schemas
 const DeltaNeutralExecuteSchema = z.object({
-  amountUSDCe: z.string(),
+  amountUSDCe: z.string()
+    .min(1, "Amount must not be empty")
+    .refine(
+      (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, 
+      { message: "Amount must be a positive number" }
+    )
+    .refine(
+      (val) => parseFloat(val) >= 0.01,
+      { message: "Minimum amount is 0.01 USDC.e" }
+    ),
 }).strict();
 
 const DeltaNeutralApySchema = z.object({}).strip();
 
 // Define schemas for MachFi and Aave delta neutral strategy execution
 const MachFiDeltaNeutralExecuteSchema = z.object({
-  amount: z.string(),
+  amount: z.string()
+    .min(1, "Amount must not be empty")
+    .refine(
+      (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, 
+      { message: "Amount must be a positive number" }
+    )
+    .refine(
+      (val) => parseFloat(val) >= 0.01,
+      { message: "Minimum amount is 0.01 USDC.e" }
+    ),
 }).strict();
 
 const AaveDeltaNeutralExecuteSchema = z.object({
-  amount: z.string(),
+  amount: z.string()
+    .min(1, "Amount must not be empty")
+    .refine(
+      (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, 
+      { message: "Amount must be a positive number" }
+    )
+    .refine(
+      (val) => parseFloat(val) >= 0.01,
+      { message: "Minimum amount is 0.01 USDC.e" }
+    ),
 }).strict();
 
 // Define type interfaces for API responses at the top of the file after imports
@@ -92,12 +119,14 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
   private machfiProvider: MachFiActionProvider;
   private wsSwapXBeefyProvider: WSSwapXBeefyActionProvider;
   private aaveProvider: AaveSupplyActionProvider;
+  private sWrapperProvider: SWrapperActionProvider;
 
   constructor() {
     super("delta-neutral", []);
     this.machfiProvider = new MachFiActionProvider();
     this.wsSwapXBeefyProvider = new WSSwapXBeefyActionProvider();
     this.aaveProvider = new AaveSupplyActionProvider();
+    this.sWrapperProvider = new SWrapperActionProvider();
   }
 
   /**
@@ -207,17 +236,36 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
         transport: http()
       });
       
-      const usdc_balance = await publicClient.readContract({
-        address: TOKENS.USDC_E.address as Hex,
-        abi: ERC20_ABI,
-        functionName: "balanceOf",
-        args: [address as Hex]
-      }) as bigint;
-      
-      const requestedAmount = parseUnits(formattedAmount, 6); // USDC.e has 6 decimals
-      
-      if (usdc_balance < requestedAmount) {
-        return `❌ Insufficient USDC.e balance. You requested to use ${formatUnits(requestedAmount, 6)} USDC.e but only have ${formatUnits(usdc_balance, 6)} USDC.e.`;
+      try {
+        console.log(`Checking USDC.e balance for address ${address}`);
+        console.log(`Using USDC.e token address: ${TOKENS.USDC_E.address}`);
+        
+        const usdc_balance = await publicClient.readContract({
+          address: TOKENS.USDC_E.address as Hex,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [address as Hex]
+        }) as bigint;
+        
+        const requestedAmount = parseUnits(formattedAmount, 6); // USDC.e has 6 decimals
+        
+        if (usdc_balance < requestedAmount) {
+          return `❌ Insufficient USDC.e balance. You requested to use ${formatUnits(requestedAmount, 6)} USDC.e but only have ${formatUnits(usdc_balance, 6)} USDC.e.`;
+        }
+      } catch (error) {
+        console.error("Error checking USDC.e balance:", error);
+        
+        // Provide more specific error message
+        if (error instanceof Error) {
+          const errorMessage = error.message;
+          if (errorMessage.includes("balanceOf")) {
+            return `❌ Error reading USDC.e balance: Could not get token balance. There might be an issue with the token contract address.`;
+          } else if (errorMessage.includes("returned no data")) {
+            return `❌ Error reading USDC.e balance: The contract function call returned no data. Please verify the token contract address.`;
+          }
+        }
+        
+        return `❌ Failed to check USDC.e balance: ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
       
       // Step 2: Supply USDC.e to MachFi
@@ -225,14 +273,19 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       response += "### 📋 Strategy Steps:\n\n";
       response += "1️⃣ Supplying USDC.e to MachFi as collateral...\n";
       
-      // Call the MachFi provider to supply USDC.e
-      const supplyResult = await this.machfiProvider.supplyUSDCe(walletProvider, { amount: formattedAmount });
-      
-      if (supplyResult.includes("failed") || supplyResult.includes("error")) {
-        return `❌ Failed to supply USDC.e to MachFi: ${supplyResult}`;
+      try {
+        // Call the MachFi provider to supply USDC.e
+        const supplyResult = await this.machfiProvider.supplyUSDCe(walletProvider, { amount: formattedAmount });
+        
+        if (supplyResult.includes("failed") || supplyResult.includes("error")) {
+          return `❌ Failed to supply USDC.e to MachFi: ${supplyResult}`;
+        }
+        
+        response += "✅ Successfully supplied USDC.e to MachFi\n\n";
+      } catch (error) {
+        console.error("Error supplying USDC.e to MachFi:", error);
+        return `❌ Failed to supply USDC.e to MachFi: ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
-      
-      response += "✅ Successfully supplied USDC.e to MachFi\n\n";
       
       // Step 3: Borrow S from MachFi (50% of collateral value)
       response += "2️⃣ Borrowing S tokens from MachFi (50% of max borrowing power)...\n";
@@ -240,42 +293,123 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       // Calculate 50% of the supplied amount for borrowing
       const borrowAmount = (parseFloat(formattedAmount) * 0.5).toFixed(4);
       
-      const borrowResult = await this.machfiProvider.borrow(walletProvider, {
-        asset: "S",
-        amount: borrowAmount
-      });
-      
-      if (borrowResult.includes("failed") || borrowResult.includes("error")) {
-        return `❌ Failed to borrow S from MachFi: ${borrowResult}`;
+      try {
+        const borrowResult = await this.machfiProvider.borrow(walletProvider, {
+          asset: "S",
+          amount: borrowAmount
+        });
+        
+        if (borrowResult.includes("failed") || borrowResult.includes("error")) {
+          return `❌ Failed to borrow S from MachFi: ${borrowResult}`;
+        }
+        
+        response += "✅ Successfully borrowed S tokens\n\n";
+      } catch (error) {
+        console.error("Error borrowing S from MachFi:", error);
+        return `❌ Failed to borrow S from MachFi: ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
-      
-      response += "✅ Successfully borrowed S tokens\n\n";
       
       // Step 4: Wrap S to wS
       response += "3️⃣ Wrapping S tokens to wS...\n";
       
-      const wrapResult = await this.wsSwapXBeefyProvider.wrapSTokens(walletProvider, {
-        amount: borrowAmount
-      });
-      
-      if (wrapResult.includes("failed") || wrapResult.includes("error")) {
-        return `❌ Failed to wrap S tokens: ${wrapResult}`;
+      try {
+        console.log(`Wrapping ${borrowAmount} S tokens to wS using SWrapperActionProvider directly`);
+        
+        // First ensure that we have enough S tokens to wrap
+        const sBalance = await publicClient.readContract({
+          address: TOKENS.S.address as Hex,
+          abi: S_TOKEN_ABI,
+          functionName: "balanceOf",
+          args: [address as Hex]
+        }) as bigint;
+        
+        console.log(`Current S balance: ${formatUnits(sBalance, 18)} S`);
+        const amountToWrap = parseUnits(borrowAmount, 18);
+        
+        if (sBalance < amountToWrap) {
+          return `❌ Insufficient S balance for wrapping. You have ${formatUnits(sBalance, 18)} S but need ${borrowAmount} S.`;
+        }
+        
+        // Use the sWrapperProvider directly to wrap S tokens
+        const wrapResult = await this.wrapSTokens(walletProvider, borrowAmount);
+        
+        console.log(`Wrap result: ${wrapResult}`);
+        
+        if (wrapResult.includes("failed") || wrapResult.includes("error") || wrapResult.includes("Error")) {
+          return `❌ Failed to wrap S tokens: ${wrapResult}`;
+        }
+        
+        response += "✅ Successfully wrapped S to wS\n\n";
+      } catch (error) {
+        console.error("Error wrapping S to wS:", error);
+        
+        // More specific error handling
+        if (error instanceof Error) {
+          const errorMessage = error.message;
+          
+          if (errorMessage.includes("insufficient funds")) {
+            return "❌ Failed to wrap S tokens: Insufficient S balance. Please make sure you have enough S tokens for the transaction and gas fees.";
+          } else if (errorMessage.includes("user rejected")) {
+            return "❌ Failed to wrap S tokens: Transaction was rejected by the user.";
+          } else if (errorMessage.includes("deposit")) {
+            return "❌ Failed to wrap S tokens: Error in deposit function. This could be due to an issue with the wS token contract.";
+          }
+        }
+        
+        return `❌ Failed to wrap S tokens: ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
-      
-      response += "✅ Successfully wrapped S to wS\n\n";
       
       // Step 5: Deposit wS into SwapX-Beefy strategy
       response += "4️⃣ Depositing wS into SwapX-Beefy strategy...\n";
       
-      const depositResult = await this.wsSwapXBeefyProvider.executeFullStrategy(walletProvider, {
-        amount: borrowAmount
-      });
-      
-      if (depositResult.includes("failed") || depositResult.includes("error")) {
-        return `❌ Failed to deposit wS into SwapX-Beefy: ${depositResult}`;
+      try {
+        console.log(`Attempting to deposit ${borrowAmount} wS into SwapX-Beefy strategy`);
+        
+        // Check if we have enough wS tokens after wrapping
+        const wsBalance = await publicClient.readContract({
+          address: TOKENS.WS.address as Hex,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [address as Hex]
+        }) as bigint;
+        
+        console.log(`Current wS balance: ${formatUnits(wsBalance, 18)} wS`);
+        const depositAmount = parseUnits(borrowAmount, 18);
+        
+        if (wsBalance < depositAmount) {
+          return `❌ Insufficient wS balance for depositing into SwapX-Beefy. You have ${formatUnits(wsBalance, 18)} wS but need ${borrowAmount} wS.`;
+        }
+        
+        // Now execute the strategy with the wS
+        const depositResult = await this.wsSwapXBeefyProvider.executeFullStrategy(walletProvider, {
+          amount: borrowAmount
+        });
+        
+        console.log(`Deposit result: ${depositResult}`);
+        
+        if (depositResult.includes("failed") || depositResult.includes("error") || depositResult.includes("insufficient")) {
+          return `❌ Failed to deposit wS into SwapX-Beefy: ${depositResult}`;
+        }
+        
+        response += "✅ Successfully deposited into SwapX-Beefy\n\n";
+      } catch (error) {
+        console.error("Error depositing wS into SwapX-Beefy:", error);
+        
+        // More specific error handling
+        if (error instanceof Error) {
+          const errorMessage = error.message;
+          
+          if (errorMessage.includes("insufficient") || errorMessage.includes("exceeds balance")) {
+            return "❌ Failed to deposit wS into SwapX-Beefy: Insufficient wS balance. The wrapping process may have failed.";
+          } else if (errorMessage.includes("user rejected")) {
+            return "❌ Failed to deposit wS into SwapX-Beefy: Transaction was rejected by the user.";
+          } else if (errorMessage.includes("approve")) {
+            return "❌ Failed to deposit wS into SwapX-Beefy: Approval for token spending failed. Please try again.";
+          }
+        }
+        
+        return `❌ Failed to deposit wS into SwapX-Beefy: ${error instanceof Error ? error.message : 'Unknown error'}`;
       }
-      
-      response += "✅ Successfully deposited into SwapX-Beefy\n\n";
       
       // Final step - Strategy summary
       response += "### 🎉 Delta Neutral Strategy Successfully Executed!\n\n";
@@ -291,7 +425,23 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
       return response;
     } catch (error) {
       console.error('Error executing MachFi Delta Neutral strategy:', error);
-      return `Failed to execute Delta Neutral strategy: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      
+      // Provide more helpful error messages for specific errors
+      if (error instanceof Error) {
+        const errorMessage = error.message;
+        
+        if (errorMessage.includes("balanceOf") && errorMessage.includes("returned no data")) {
+          return "❌ Failed to execute Delta Neutral strategy: Could not check token balance. The token contract address might be incorrect or the contract doesn't implement the expected interface.";
+        } else if (errorMessage.includes("insufficient funds")) {
+          return "❌ Failed to execute Delta Neutral strategy: Insufficient funds for transaction. Please make sure you have enough funds to cover the gas fees.";
+        } else if (errorMessage.includes("user rejected")) {
+          return "❌ Failed to execute Delta Neutral strategy: Transaction was rejected by the user.";
+        }
+        
+        return `❌ Failed to execute Delta Neutral strategy: ${errorMessage}`;
+      }
+      
+      return "❌ Failed to execute Delta Neutral strategy: An unknown error occurred.";
     }
   }
   
@@ -402,15 +552,76 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
   // Default execute-delta-neutral for backward compatibility - uses MachFi strategy
   @CreateAction({
     name: "execute-delta-neutral",
-    description: "Execute the delta neutral strategy (uses MachFi by default)",
+    description: "Execute a delta neutral strategy using MachFi and SwapX-Beefy. This strategy supplies USDC.e to MachFi, borrows S tokens, wraps them to wS, and deposits them into Beefy's high-yield wS-SwapX vault for optimal yield farming.",
     schema: DeltaNeutralExecuteSchema,
   })
   async executeDeltaNeutral(
     walletProvider: EvmWalletProvider,
     args: z.infer<typeof DeltaNeutralExecuteSchema>
   ): Promise<string> {
-    // Convert from the old parameter format to the new one
-    return this.executeMachFiDeltaNeutral(walletProvider, { amount: args.amountUSDCe });
+    console.log(`Executing delta neutral strategy with USDC.e amount: ${args.amountUSDCe}`);
+    console.log(`Using USDC.e token address: ${TOKENS.USDC_E.address}`);
+    
+    try {
+      // Check if the USDC.e contract address is valid
+      const address = await walletProvider.getAddress();
+      const publicClient = createPublicClient({
+        chain: sonic,
+        transport: http()
+      });
+      
+      console.log(`Verifying USDC.e token contract at ${TOKENS.USDC_E.address}`);
+      
+      try {
+        // Check token total supply to verify contract exists and is an ERC20
+        const totalSupply = await publicClient.readContract({
+          address: TOKENS.USDC_E.address as Hex,
+          abi: [...ERC20_ABI, {
+            inputs: [],
+            name: "totalSupply",
+            outputs: [{ type: "uint256" }],
+            stateMutability: "view",
+            type: "function"
+          }],
+          functionName: "totalSupply",
+        });
+        
+        console.log(`USDC.e token contract verified, total supply: ${totalSupply}`);
+      } catch (error) {
+        console.error("Error verifying USDC.e token contract:", error);
+        
+        if (error instanceof Error) {
+          const errorMessage = error.message;
+          if (errorMessage.includes("returned no data")) {
+            return `❌ Error: Invalid USDC.e token contract. The contract at address ${TOKENS.USDC_E.address} does not appear to be a valid ERC20 token. Please check the token contract address.`;
+          }
+        }
+        
+        return `❌ Error: Failed to verify USDC.e token contract. Please try again later or contact support.`;
+      }
+      
+      // Convert from the old parameter format to the new one
+      return this.executeMachFiDeltaNeutral(walletProvider, { amount: args.amountUSDCe });
+    } catch (error) {
+      console.error('Error in executeDeltaNeutral:', error);
+      
+      // Provide more helpful error messages for specific errors
+      if (error instanceof Error) {
+        const errorMessage = error.message;
+        
+        if (errorMessage.includes("balanceOf") && errorMessage.includes("returned no data")) {
+          return "❌ Failed to execute Delta Neutral strategy: Could not check token balance. The token contract address might be incorrect or the contract doesn't implement the expected interface.";
+        } else if (errorMessage.includes("insufficient funds")) {
+          return "❌ Failed to execute Delta Neutral strategy: Insufficient funds for transaction. Please make sure you have enough funds to cover the gas fees.";
+        } else if (errorMessage.includes("user rejected")) {
+          return "❌ Failed to execute Delta Neutral strategy: Transaction was rejected by the user.";
+        }
+        
+        return `❌ Failed to execute Delta Neutral strategy: ${errorMessage}`;
+      }
+      
+      return "❌ Failed to execute Delta Neutral strategy: An unknown error occurred.";
+    }
   }
   
   // Helper method to check if Aave USDC.e is at supply cap
@@ -444,12 +655,26 @@ export class DeltaNeutralActionProvider extends ActionProvider<EvmWalletProvider
   }
   
   private async wrapSTokens(walletProvider: EvmWalletProvider, amount: string): Promise<string> {
-    // Create an instance of SWrapperActionProvider to wrap tokens
-    const sWrapperProvider = new SWrapperActionProvider();
-    
-    return await sWrapperProvider.wrapS(walletProvider, {
-      amount
-    });
+    try {
+      console.log(`Private wrapSTokens helper called with amount: ${amount}`);
+      
+      // Use the class instance's sWrapperProvider
+      const result = await this.sWrapperProvider.wrapS(walletProvider, {
+        amount
+      });
+      
+      console.log(`Wrap result: ${result}`);
+      return result;
+    } catch (error) {
+      console.error('Error in wrapSTokens helper:', error);
+      if (error instanceof Error) {
+        if (error.message.includes("insufficient funds")) {
+          return "Error: Insufficient S balance for wrapping.";
+        }
+        return `Error wrapping S tokens: ${error.message}`;
+      }
+      return `Unknown error wrapping S tokens: ${String(error)}`;
+    }
   }
 
   /**
